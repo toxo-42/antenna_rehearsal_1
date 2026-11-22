@@ -1,122 +1,66 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { ErrorNotice, LoadingNotice } from './Badges.tsx'
+import { CardPage } from './CardPage.tsx'
+import { HistoryPanel } from './HistoryPanel.tsx'
+import { MeasurePanel } from './MeasurePanel.tsx'
+import type { Measurement } from './types.ts'
+import { useAntennas, useMeasure } from './useAppState.ts'
 
-function App() {
-  const [count, setCount] = useState(0)
+const TABS = [
+  { id: 'measure', label: '① 측정' },
+  { id: 'card', label: '② 판정 카드' },
+  { id: 'history', label: '③ 이력' },
+] as const
+type Tab = (typeof TABS)[number]['id']
+
+export default function App() {
+  const [tab, setTab] = useState<Tab>('measure')
+  const [current, setCurrent] = useState<Measurement | null>(null)
+  const antennas = useAntennas()
+  const show = (measurement: Measurement) => {
+    setCurrent(measurement)
+    setTab('card')
+  }
+  const measure = useMeasure(show)
+  const { loaded } = antennas
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <TopBar tab={tab} locked={measure.busy} onTab={setTab} />
+      <main>
+        {loaded.status === 'loading' && <LoadingNotice />}
+        {loaded.status === 'error' && <ErrorNotice error={loaded.error} onRetry={antennas.reload} />}
+        {loaded.status === 'ready' && tab === 'measure' && (
+          <MeasurePanel antennas={antennas} measure={measure} />
+        )}
+        {loaded.status === 'ready' && tab === 'card' && <CardPage measurement={current} />}
+        {loaded.status === 'ready' && tab === 'history' && (
+          <HistoryPanel antennas={antennas} onOpen={show} />
+        )}
+      </main>
     </>
   )
 }
 
-export default App
+function TopBar({ tab, locked, onTab }: { tab: Tab; locked: boolean; onTab: (tab: Tab) => void }) {
+  return (
+    <header className="topbar">
+      <strong className="app-name">안테나 S11 도우미</strong>
+      <nav aria-label="화면">
+        {TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="tab"
+            aria-current={tab === item.id ? 'page' : undefined}
+            disabled={locked && tab !== item.id}
+            title={locked ? '측정이 끝나면 이동할 수 있습니다' : undefined}
+            onClick={() => onTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </header>
+  )
+}
