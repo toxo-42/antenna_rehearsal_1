@@ -22,6 +22,15 @@ def src_files() -> list[Path]:
     return sorted((ROOT / "src").glob("*.py"))
 
 
+def nested_py_files(src_dir: Path) -> list[Path]:
+    """Python files below src/ that the flat src/*.py glob would not check."""
+    return sorted(p for p in src_dir.rglob("*.py") if p.parent != src_dir)
+
+
+def line_count(path: Path) -> int:
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
 def parse(path: Path) -> ast.Module:
     return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
@@ -92,9 +101,14 @@ def find_cycle(graph: dict[str, set[str]]) -> list[str]:
 
 
 def test_files_are_at_most_300_lines() -> None:
-    counts = {p: len(p.read_text(encoding="utf-8").splitlines()) for p in source_files()}
+    counts = {p: line_count(p) for p in source_files()}
     too_long = [f"{p.relative_to(ROOT)}: {n}" for p, n in counts.items() if n > MAX_FILE_LINES]
     assert too_long == []
+
+
+def test_src_is_flat() -> None:
+    nested = [str(p.relative_to(ROOT)) for p in nested_py_files(ROOT / "src")]
+    assert nested == []
 
 
 def test_functions_are_at_most_40_lines() -> None:
@@ -149,3 +163,14 @@ def test_detectors_catch_violations() -> None:
 
     assert find_cycle({"a": {"b"}, "b": {"c"}, "c": {"a"}}) == ["a", "b", "c", "a"]
     assert find_cycle({"a": {"b", "c"}, "b": {"c"}, "c": set()}) == []
+
+
+def test_file_detectors_catch_violations(tmp_path: Path) -> None:
+    long_file = tmp_path / "long.py"
+    long_file.write_text("x = 1\n" * (MAX_FILE_LINES + 1), encoding="utf-8")
+    assert line_count(long_file) == MAX_FILE_LINES + 1
+
+    nested = tmp_path / "sub" / "deep.py"
+    nested.parent.mkdir()
+    nested.write_text("", encoding="utf-8")
+    assert nested_py_files(tmp_path) == [nested]
