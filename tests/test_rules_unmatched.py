@@ -15,7 +15,8 @@ from tests.diag_helpers import (
 )
 
 FREQS = (400.0, 430.0, 460.0)
-CAUTION = ("초기 추정", "한 번에 절반씩", "자르기 전에 다시 측정")
+SHORTEN_CAUTION = "초기 추정. 한 번에 절반씩, 자르기 전에 다시 측정"
+LENGTHEN_CAUTION = "초기 추정. 한 번에 절반씩, 자르지 말고 덧붙여서 확인"
 RETEST = "더 촘촘한 간격으로 재측정"
 
 
@@ -43,7 +44,8 @@ def test_reactance_direction_comes_from_the_target_not_the_dip() -> None:
     assert keys(sweep, ant) == ["reactance", "common_mode"]
     action = find(sweep, ant, "reactance").action
     assert "늘리는" in action and "줄이는" not in action
-    assert all(part in action for part in CAUTION)
+    assert LENGTHEN_CAUTION in action
+    assert "자르기 전에" not in action
 
 
 def test_reactance_says_shorten_when_x_at_the_target_is_positive() -> None:
@@ -52,7 +54,7 @@ def test_reactance_says_shorten_when_x_at_the_target_is_positive() -> None:
     action = find(sweep, antenna(440.0), "reactance").action
 
     assert "줄이는" in action and "늘리는" not in action
-    assert all(part in action for part in CAUTION)
+    assert SHORTEN_CAUTION in action
 
 
 def test_reactance_gives_no_direction_when_x_at_the_target_is_zero() -> None:

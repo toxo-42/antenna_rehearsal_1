@@ -11,7 +11,7 @@ from typing import Any
 from src import service
 from src.explain import Explainer, NoExplainer, OllamaExplainer
 from src.guides import guide_for
-from src.models import AntennaKind, Card, CardStage, Diagnosis
+from src.models import Antenna, AntennaKind, Card, CardStage, Diagnosis
 from src.ollama import DEFAULT_BASE_URL, DEFAULT_MODEL
 from src.router import TOPICS, NoRouter, OllamaRouter, QuestionRouter, key_for
 
@@ -54,9 +54,13 @@ def card_from_dict(data: Mapping[str, Any]) -> Card:
 
 
 def explain_measurement(db_path: Path, measurement_id: int, explainer: Explainer) -> Row:
-    card = card_from_dict(service.get_measurement(db_path, measurement_id)["card"])
-    result = explainer.explain(card)
-    return {**asdict(result), "warnings": list(result.warnings)}
+    measurement = service.get_measurement(db_path, measurement_id)
+    stored = measurement["antenna"]
+    antenna = Antenna(stored["name"], AntennaKind(stored["kind"]), stored["target_mhz"])
+    result = explainer.explain(card_from_dict(measurement["card"]), antenna)
+    row = {**asdict(result), "warnings": list(result.warnings)}
+    del row["rejections"]  # quotes a dropped text, which the screen never shows
+    return row
 
 
 def ask_measurement(

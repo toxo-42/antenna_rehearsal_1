@@ -56,7 +56,10 @@ RULE_ORDER = [
     "uncalibrated",
 ]
 
-CAUTION = ("초기 추정", "한 번에 절반씩", "자르기 전에 다시 측정")
+CAUTION = {
+    "줄이는": "초기 추정. 한 번에 절반씩, 자르기 전에 다시 측정",
+    "늘리는": "초기 추정. 한 번에 절반씩, 자르지 말고 덧붙여서 확인",
+}
 
 
 def sample_keys(name: str, cal_mode: CalMode = CalMode.VNA) -> list[str]:
@@ -99,7 +102,7 @@ def test_length_far_amount_and_direction(name: str, percent: str, verb: str) -> 
 
     assert percent in action
     assert verb in action
-    assert all(part in action for part in CAUTION)
+    assert CAUTION[verb] in action
 
 
 def test_two_res_uses_the_nearest_resonance_and_reports_the_other() -> None:
@@ -115,7 +118,9 @@ def test_offtarget_samples_give_amount_direction_and_caution() -> None:
 
     assert "12 %" in long_action and "줄이는" in long_action
     assert "11 %" in short_action and "늘리는" in short_action
-    assert all(part in long_action and part in short_action for part in CAUTION)
+    assert CAUTION["줄이는"] in long_action
+    assert CAUTION["늘리는"] in short_action
+    assert "자르기 전에" not in short_action
     assert "안테나 도체" in long_action
 
 

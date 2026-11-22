@@ -9,7 +9,7 @@ from src.models import (
     RuleContext,
     Stage,
 )
-from src.rule_tools import LENGTH_CAUTION, SHORTEN, finding, length_name
+from src.rule_tools import SHORTEN, finding, length_caution, length_name
 from src.rules_none import far_resonance, has_positive_s11
 from src.tolerance import at_least, at_most
 
@@ -45,7 +45,8 @@ def third_mode(ctx: RuleContext) -> Diagnosis | None:
     ratio = selected.f_mhz / base.f_mhz
     evidence = f"공진 {selected.f_mhz:.2f} MHz는 더 낮은 공진 {base.f_mhz:.2f} MHz의 {ratio:.2f}배"
     action = (
-        f"기본 모드로 맞추려면 {length_name(ctx)}를 약 1/3로 {SHORTEN} 것이 {LENGTH_CAUTION}. "
+        f"기본 모드로 맞추려면 {length_name(ctx)}를 약 1/3로 {SHORTEN} 것이 "
+        f"{length_caution(SHORTEN)}. "
         "확신 없이 자르지 말 것"
     )
     return finding(ctx, "third_mode", "3배 모드 공진일 수 있음", evidence, action)

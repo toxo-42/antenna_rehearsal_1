@@ -13,7 +13,7 @@ from app import create_app
 from src.assist import MAX_QUESTION_CHARS, LlmParts, parts_from_env
 from src.explain import Explanation, NoExplainer, OllamaExplainer
 from src.guides import guide_for
-from src.models import AntennaKind, Card
+from src.models import Antenna, AntennaKind, Card
 from src.ollama import DEFAULT_BASE_URL
 from src.router import GUIDE_KEYS, NoRouter, OllamaRouter
 
@@ -24,9 +24,11 @@ OFF = LlmParts(NoExplainer(), NoRouter())
 class StubExplainer:
     result: Explanation
     cards: list[Card] = field(default_factory=list)
+    antennas: list[Antenna] = field(default_factory=list)
 
-    def explain(self, card: Card) -> Explanation:
+    def explain(self, card: Card, antenna: Antenna) -> Explanation:
         self.cards.append(card)
+        self.antennas.append(antenna)
         return self.result
 
 
@@ -77,6 +79,8 @@ def test_explain_passes_the_stored_card_and_returns_the_result(tmp_path: Path) -
     assert [d.action for d in card.diagnoses] == [
         d["action"] for d in measurement["card"]["diagnoses"]
     ]
+    antenna = stub.antennas[0]
+    assert (antenna.kind, antenna.target_mhz) == (AntennaKind.MONOPOLE, 433.0)
 
 
 def test_explain_when_off(tmp_path: Path) -> None:

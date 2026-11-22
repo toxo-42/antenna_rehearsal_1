@@ -1,7 +1,7 @@
 import pytest
 
 from src.models import AntennaKind
-from src.rule_tools import LENGTHEN, SHORTEN, amount_text, length_action
+from src.rule_tools import LENGTHEN, SHORTEN, amount_text, length_action, length_caution
 from tests.diag_helpers import antenna, context, magnitude_sweep
 
 SWEEP = magnitude_sweep([0.0, -30.0, 0.0])
@@ -35,4 +35,12 @@ def test_length_action_names_the_length_and_carries_the_caution(
     assert length_action(ctx, SHORTEN, "약 12 %") == (
         f"{name}를 약 12 % 줄이는 것이 초기 추정. 한 번에 절반씩, 자르기 전에 다시 측정"
     )
-    assert "늘리는" in length_action(ctx, LENGTHEN, "약 12 %")
+    assert length_action(ctx, LENGTHEN, "약 12 %") == (
+        f"{name}를 약 12 % 늘리는 것이 초기 추정. 한 번에 절반씩, 자르지 말고 덧붙여서 확인"
+    )
+
+
+def test_lengthen_and_shorten_cautions_differ() -> None:
+    assert length_caution(LENGTHEN) != length_caution(SHORTEN)
+    assert "자르기 전에" not in length_caution(LENGTHEN)
+    assert "덧붙" not in length_caution(SHORTEN)

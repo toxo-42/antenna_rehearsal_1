@@ -44,7 +44,7 @@
 
 배타 규칙: positive_s11이 나오면 그것만 낸다. feed_* 또는 lossy가 나오면 out_of_range는 내지 않는다.
 폴백: uncalibrated를 빼고 결과가 비어 있으면 `no_resonance`(할 일: 범위를 넓히고 점 수를 늘려 재측정, 납땜과 연결 확인)를 맨 앞에 넣는다.
-길이를 바꾸라는 action(length_far, too_short, too_long, 방향이 있는 reactance, third_mode)에는 항상 "초기 추정, 한 번에 절반씩, 자르기 전에 다시 측정"을 넣는다. feed_lead에는 넣지 않는다.
+길이를 바꾸라는 action(length_far, too_short, too_long, 방향이 있는 reactance, third_mode)에는 항상 주의 문구를 넣는다. 줄이는 방향이면 "초기 추정. 한 번에 절반씩, 자르기 전에 다시 측정", **늘리는 방향이면 "초기 추정. 한 번에 절반씩, 자르지 말고 덧붙여서 확인"**(늘리라는 안내에 "자르기 전에"가 붙으면 학생도 LLM도 자르라는 말로 읽는다). feed_lead에는 넣지 않는다. 늘리는 action과 줄이는 action의 문구가 다른지 테스트한다.
 
 ## guide 문장 (그대로 사용. 화면에 기본으로 보여 주는 설명이다)
 값이 객체인 key(`length_far`, `too_short`, `too_long`, `r_low`, `r_high`, `narrow`)는 안테나 종류로 문장을 고른다.

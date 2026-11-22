@@ -5,7 +5,8 @@ from tests.diag_helpers import antenna, context, find, keys, magnitude_sweep
 
 # Resonance at 420 MHz, band 405..435 MHz, spacing 10 MHz.
 ONE_DIP = magnitude_sweep([0, 0, -5, -15, -30, -15, -5, 0, 0, 0, 0], start=380.0)
-CAUTION = ("초기 추정", "한 번에 절반씩", "자르기 전에 다시 측정")
+SHORTEN_CAUTION = "초기 추정. 한 번에 절반씩, 자르기 전에 다시 측정"
+LENGTHEN_CAUTION = "초기 추정. 한 번에 절반씩, 자르지 말고 덧붙여서 확인"
 
 
 def patch(target: float) -> Antenna:
@@ -18,7 +19,7 @@ def test_resonance_below_a_target_outside_the_band_is_too_long() -> None:
     action = find(ONE_DIP, patch(437.0), "too_long").action
     assert "약 4 %" in action and "줄이는" in action  # (420 - 437) / 437 = -3.89 %
     assert "패치 길이(공진 방향 변)" in action
-    assert all(part in action for part in CAUTION)
+    assert SHORTEN_CAUTION in action
 
 
 def test_resonance_above_a_target_outside_the_band_is_too_short() -> None:
@@ -26,7 +27,8 @@ def test_resonance_above_a_target_outside_the_band_is_too_short() -> None:
 
     action = find(ONE_DIP, patch(403.0), "too_short").action
     assert "약 4 %" in action and "늘리는" in action  # (420 - 403) / 403 = +4.22 %
-    assert all(part in action for part in CAUTION)
+    assert LENGTHEN_CAUTION in action
+    assert "자르기 전에" not in action
 
 
 def test_target_inside_the_band_but_near_its_edge_is_band_edge_only() -> None:

@@ -18,6 +18,7 @@ class FakeOllama:
     """What the server answers, and the request bodies it received."""
 
     answer: str = ""
+    answers: list[str] = field(default_factory=list)  # one per request, the last one repeats
     status: int = 200
     delay_s: float = 0.0
     raw_body: bytes | None = None
@@ -25,6 +26,13 @@ class FakeOllama:
     requests: list[dict[str, Any]] = field(default_factory=list)
     paths: list[str] = field(default_factory=list)
     base_url: str = ""
+
+
+def _answer(fake: FakeOllama) -> str:
+    """`answers` in order when given (the request is already recorded), else `answer`."""
+    if not fake.answers:
+        return fake.answer
+    return fake.answers[min(len(fake.requests), len(fake.answers)) - 1]
 
 
 def _handler(fake: FakeOllama) -> type[BaseHTTPRequestHandler]:
@@ -36,7 +44,7 @@ def _handler(fake: FakeOllama) -> type[BaseHTTPRequestHandler]:
             time.sleep(fake.delay_s)
             body = fake.raw_body
             if body is None:
-                body = json.dumps({"response": fake.answer, "done": True}).encode()
+                body = json.dumps({"response": _answer(fake), "done": True}).encode()
             self.send_response(fake.status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body) + fake.extra_length))

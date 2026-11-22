@@ -4,7 +4,14 @@ import math
 
 from src.impedance import impedance_at, reactance_at
 from src.models import AntennaKind, Diagnosis, Impedance, RuleContext, Stage
-from src.rule_tools import LENGTH_CAUTION, LENGTHEN, SHORTEN, finding, length_name, target_text
+from src.rule_tools import (
+    LENGTHEN,
+    SHORTEN,
+    finding,
+    length_caution,
+    length_name,
+    target_text,
+)
 from src.tolerance import at_least, at_most
 
 R_LOW_OHM = 30.0
@@ -68,7 +75,7 @@ def _reactance_action(ctx: RuleContext, x_ohm: float | None) -> str:
     if x_ohm is None or _is_zero(x_ohm):
         return RETEST_FINER
     verb = SHORTEN if x_ohm > 0 else LENGTHEN
-    return f"{length_name(ctx)}를 조금 {verb} 미세 조정이 {LENGTH_CAUTION}"
+    return f"{length_name(ctx)}를 조금 {verb} 미세 조정이 {length_caution(verb)}"
 
 
 def _reactance_evidence(ctx: RuleContext, impedance: Impedance, x_ohm: float | None) -> str:
