@@ -101,7 +101,7 @@ cal_mode = unknown이면 positive를 뺀 모든 경우의 끝에 uncalibrated가
 ## 카드
 `stage, headline, status, diagnoses`. 직렬화한 모양은 `contract/measurement.json`의 `card`와 같아야 한다.
 - stage: p1의 단계 값 그대로. 단, positive_s11이 나오면 `invalid`. 카드의 stage 값은 `none | unmatched | offtarget | narrow | good | invalid` (`invalid`는 카드에만 있고 p1의 단계에는 없다)
-- headline: 단계별 한 문장. 단, positive_s11이 나오면 단계 문장 대신 "측정값이 올바르지 않아 판정할 수 없다"는 뜻의 문장을 쓴다 (p1 단계가 good이어도 합격으로 보이지 않게)
+- headline: 단계별 한 문장. 단, positive_s11이 나오면 단계 문장 대신 "측정값이 올바르지 않아 판정할 수 없다"는 뜻의 문장을 쓴다 (p1 단계가 good이어도 합격으로 보이지 않게). band_edge가 나오면 stage는 `offtarget` 그대로 두고, 단계 문장 대신 "목표가 대역 끝에 가까워 이 측정 간격으로는 확정할 수 없다"는 뜻의 문장을 쓴다 (공진이 목표와 같은데 "맞지 않는다"고 하지 않게)
 - status: 공진·목표 차이·깊이·대역, 공진점 R/X, 교정 상태와 측정 간격
   - 값이 없는 항목은 줄을 내지 않는다 (unmatched의 대역, 복소값 없는 스윕의 R/X)
   - 목표 공진이 없으면 공진 줄 대신 "목표 근처에 공진 없음"을 낸다. 다른 공진의 수치는 status에 쓰지 않고 해당 진단의 evidence에만 쓴다

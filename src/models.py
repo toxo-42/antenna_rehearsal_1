@@ -27,6 +27,22 @@ class Stage(StrEnum):
     GOOD = "good"
 
 
+class CalMode(StrEnum):
+    VNA = "vna"
+    UNKNOWN = "unknown"
+
+
+class CardStage(StrEnum):
+    """Stage shown on the card: the p1 stages plus `invalid` for a sweep that cannot be judged."""
+
+    NONE = "none"
+    UNMATCHED = "unmatched"
+    OFFTARGET = "offtarget"
+    NARROW = "narrow"
+    GOOD = "good"
+    INVALID = "invalid"
+
+
 TYPICAL_BANDWIDTH_PCT: dict[AntennaKind, float] = {
     AntennaKind.MONOPOLE: 8.0,
     AntennaKind.PATCH: 2.5,
@@ -104,3 +120,32 @@ class Classification:
     selected: Resonance | None
     offset_pct: float | None
     others: tuple[Resonance, ...]
+
+
+@dataclass(frozen=True)
+class RuleContext:
+    """Everything a diagnosis rule may look at. Rules never see each other's results."""
+
+    classification: Classification
+    sweep: Sweep
+    antenna: Antenna
+    cal_mode: CalMode
+
+
+@dataclass(frozen=True)
+class Diagnosis:
+    key: str
+    title: str
+    evidence: str
+    action: str
+    guide: str
+
+
+@dataclass(frozen=True)
+class Card:
+    """The verdict card. Field names match `card` in contract/measurement.json."""
+
+    stage: CardStage
+    headline: str
+    status: tuple[str, ...]
+    diagnoses: tuple[Diagnosis, ...]

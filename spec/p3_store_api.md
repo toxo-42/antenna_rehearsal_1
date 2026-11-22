@@ -6,6 +6,7 @@
 - `measurements(id, antenna_id, measured_at, source, cal_mode, stage, resonance_mhz, s11_db, bandwidth_pct, sweep_json, card_json, change_note)`, 인덱스 `(antenna_id, measured_at)`, `stage`
 - 값은 전부 `?` 바인딩. 한 측정은 트랜잭션 하나. `sweep_json`은 `[f_hz, s11_db, re, im]` 목록(re, im은 null 가능)
 - `SweepSource`는 Protocol. 이번에는 `SyntheticSource`와 `StoredSource`만. `source` 값은 `usb | csv | stored | synthetic`
+- 판정 코어(p1·p2)는 스윕을 검사하지 않는다. 어느 source에서 온 스윕이든 `service`가 판정 전에 CSV 파서와 같은 검사(3점 이상, 주파수 오름차순, 유한한 수)를 한 곳에서 거치게 하고, 어기면 422. 이 경우의 테스트를 둔다
 
 | 메서드 | 경로 |
 |---|---|

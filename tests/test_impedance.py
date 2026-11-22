@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from src.impedance import impedance_at, low_freq_gamma_real
+from src.impedance import impedance_at, low_freq_gamma_real, reactance_at
 from src.models import Sweep
 
 
@@ -61,3 +61,47 @@ def test_low_freq_point_count_rounds_down() -> None:
     gamma = [1 + 0j, 1 + 0j, -1 + 0j] + [0j] * 22  # 25 points -> lowest 2, not 3
 
     assert low_freq_gamma_real(make_sweep(gamma)) == pytest.approx(1.0)
+
+
+def reactance_sweep(reactances: list[float]) -> Sweep:
+    """Points at 100, 110, ... MHz with impedance 50 + jX."""
+    gamma = [complex(0, x) / complex(100, x) for x in reactances]
+    freqs = tuple(100.0 + 10.0 * i for i in range(len(gamma)))
+    return Sweep(f_mhz=freqs, s11_db=(-1.0,) * len(gamma), gamma=tuple(gamma))
+
+
+@pytest.mark.parametrize(
+    ("f_mhz", "x_ohm"),
+    [(100.0, -40.0), (105.0, -10.0), (110.0, 20.0), (112.5, 30.0), (120.0, 60.0)],
+)
+def test_reactance_at_interpolates_between_the_surrounding_points(
+    f_mhz: float, x_ohm: float
+) -> None:
+    sweep = reactance_sweep([-40.0, 20.0, 60.0])
+
+    assert reactance_at(sweep, f_mhz) == pytest.approx(x_ohm, abs=1e-9)
+
+
+@pytest.mark.parametrize("f_mhz", [99.9, 120.1])
+def test_reactance_at_is_none_outside_the_sweep(f_mhz: float) -> None:
+    assert reactance_at(reactance_sweep([-40.0, 20.0, 60.0]), f_mhz) is None
+
+
+def test_reactance_at_a_measured_point_is_the_measured_value() -> None:
+    sweep = reactance_sweep([1e18, 40.0, 60.0])  # interpolating from 1e18 would cancel the 40
+
+    assert reactance_at(sweep, 110.0) == pytest.approx(40.0, abs=1e-9)
+
+
+@pytest.mark.parametrize("f_mhz", [100.0, 105.0, 110.0, 115.0])
+def test_reactance_at_is_none_when_the_result_is_not_finite(f_mhz: float) -> None:
+    near_open = 1 + 1e-310j  # not exactly 1, so the impedance overflows
+    sweep = make_sweep([0.5 + 0.5j, near_open, 0.5 - 0.5j])
+    sweep = Sweep(f_mhz=(100.0, 110.0, 120.0), s11_db=sweep.s11_db, gamma=sweep.gamma)
+
+    expected_finite = f_mhz == 100.0
+    assert (reactance_at(sweep, f_mhz) is not None) == expected_finite
+
+
+def test_reactance_at_is_none_without_complex_data() -> None:
+    assert reactance_at(make_sweep(None), 101.0) is None
