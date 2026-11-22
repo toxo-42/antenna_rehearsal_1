@@ -10,6 +10,8 @@ from typing import Any
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen3.5:4b"
 KEEP_ALIVE = "10m"
+# No proxy, whatever HTTP_PROXY or the system says: the request must stay on this PC.
+_DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 class OllamaError(RuntimeError):
@@ -42,12 +44,17 @@ def generate(base_url: str, request: GenerateRequest) -> str:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(http_request, timeout=request.timeout_s) as response:
+        with open_direct(http_request, request.timeout_s) as response:
             raw = response.read()
     except (urllib.error.URLError, http.client.HTTPException, OSError) as error:
         # HTTPException covers a body cut short (IncompleteRead); OSError covers timeouts.
         raise OllamaError(str(error)) from error
     return _response_text(raw)
+
+
+def open_direct(http_request: urllib.request.Request, timeout_s: float) -> Any:
+    """Send `http_request` without any proxy."""
+    return _DIRECT.open(http_request, timeout=timeout_s)
 
 
 def _response_text(raw: bytes) -> str:

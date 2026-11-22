@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
+from src import ollama
+
 
 @dataclass
 class FakeOllama:
@@ -73,14 +75,14 @@ def fake_ollama(answer: str = "", **settings: Any) -> Iterator[FakeOllama]:
 
 
 def record_timeouts(monkeypatch: Any) -> list[float]:
-    """Replace urlopen with one that records its timeout and refuses, so no request is sent."""
+    """Replace the opener with one that records its timeout and refuses, so no request is sent."""
     timeouts: list[float] = []
 
     def refuse(request: Any, timeout: float) -> Any:
         timeouts.append(timeout)
         raise urllib.error.URLError("refused in test")
 
-    monkeypatch.setattr(urllib.request, "urlopen", refuse)
+    monkeypatch.setattr(ollama, "open_direct", refuse)
     return timeouts
 
 
