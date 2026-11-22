@@ -1,6 +1,7 @@
 {
   "id": 1, "antenna": {"id": 1, "name": "모노폴 A", "kind": "monopole", "target_mhz": 433},
   "source": "synthetic", "cal_mode": "vna", "measured_at": "2026-11-26T15:00:00", "change_note": "",
+  "resonance_mhz": 381.25, "s11_db": -25.21, "bandwidth_pct": 13.89,
   "sweep": [{"f_mhz": 10.0, "s11_db": -0.01}],
   "card": {
     "stage": "offtarget", "headline": "공진은 있지만 목표 주파수에 맞지 않습니다",

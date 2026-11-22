@@ -4,13 +4,14 @@
 
 1. git 저장소가 아니면 `git init`. `uv init`(예제 파일은 삭제), 의존성 추가, `src/__init__.py`, `tests/`, `.gitignore`(.venv, node_modules, __pycache__, *.db, web/dist, .DS_Store). `pyproject.toml`에는 `[tool.ruff]`(`line-length = 100`), `[tool.pytest.ini_options]`(`pythonpath = ["."]`, `testpaths = ["tests"]`), `[tool.claude-kit]`(`check_size = true`) 구획을 넣는다
 2. `app.py`: FastAPI 앱 생성. `GET /api/health` → `{"mode":"local","ollama":false,"ports":[]}`. `web/dist`가 있으면 `/`에서 서빙. `tests/test_app.py`에 health 응답 테스트 1개
-3. `web/`: Vite React TypeScript 골격. 개발 서버가 `/api`를 `http://localhost:8000`으로 프록시
+3. `web/`: Vite React TypeScript 골격. 개발 서버가 `/api`를 `http://localhost:8000`으로 프록시. `web/tsconfig.app.json`의 `types`에 `"node"`를 더한다(p4에서 `node --test`로 도는 테스트 파일이 타입 검사를 통과하게)
 4. `contract/measurement.json`: 프론트와 백엔드가 공유할 응답 예시. 아래를 그대로 저장
 
 ```json
 {
   "id": 1, "antenna": {"id": 1, "name": "모노폴 A", "kind": "monopole", "target_mhz": 433},
   "source": "synthetic", "cal_mode": "vna", "measured_at": "2026-11-26T15:00:00", "change_note": "",
+  "resonance_mhz": 381.25, "s11_db": -25.21, "bandwidth_pct": 13.89,
   "sweep": [{"f_mhz": 10.0, "s11_db": -0.01}],
   "card": {
     "stage": "offtarget", "headline": "공진은 있지만 목표 주파수에 맞지 않습니다",
@@ -29,7 +30,7 @@
   }
 }
 ```
-(합성 샘플 `offtarget_low`를 `cal_mode = vna`로 판정한 카드와 같다. p2의 출력이 이 `card`와 글자까지 같은지 p2에서 검사한다)
+(합성 샘플 `offtarget_low`를 `cal_mode = vna`로 판정한 카드와 같다. p2의 출력이 이 `card`와 글자까지 같은지 p2에서 검사한다. `resonance_mhz, s11_db, bandwidth_pct`는 화면이 그래프에 공진을 표시할 때 쓰는 숫자이고, 선택된 공진이 없으면 `null`이다. `sweep`은 모양만 보이는 1점짜리 예시다)
 
 5. `.claude/settings.json`: `{"model": "opus"}`만 넣는다. 이 폴더에서 여는 세션이 구현용 모델로 시작하게 하는 설정이고, 커밋에 포함한다
 6. `tests/test_architecture.py`: CLAUDE.md의 구조 규칙을 검사하는 테스트. `ast`로 `app.py`와 `src/*.py`를 읽어 ① 파일 300줄 이하 ② 함수 40줄 이하 ③ 인자 5개 이하(self 제외) ④ `src/`가 `app`을 import하지 않음 ⑤ `src/` 모듈 사이에 순환 import 없음 ⑥ `src/` 하위 폴더에 `.py` 파일 없음을 확인한다. `src/`가 비어 있으면 무조건 통과하므로, 검사기마다 임시 파일로 만든 위반 예시를 실제로 잡는지 확인하는 테스트도 둔다. 이후 단계에서 이 테스트의 한도를 늘리거나 예외를 추가하지 않는다
