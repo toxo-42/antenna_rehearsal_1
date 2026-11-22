@@ -7,13 +7,13 @@
 3. 합성 샘플은 화면에 항상 "합성 데이터"로 표시한다. 실측인 것처럼 보이게 하지 않는다.
 
 # 구조
-- 루트: `app.py`(조립만), `src/`(평평한 모듈), `tests/`, `web/`(React + Vite + TypeScript), `README.md`, `requirements.txt`
+- 루트: `app.py`(조립만), `src/`(평평한 모듈), `tests/`, `web/`(React + Vite + TypeScript), `README.md`
 - `src/`는 `app.py`를 import하지 않는다. 순환 import 금지. 교체할 부품은 `typing.Protocol`로 받는다.
 - 함수 40줄, 파일 300줄, 인자 5개 이하. 공개 함수는 타입 힌트와 테스트를 둔다.
 - 규칙 추가는 함수 추가로 한다. if/elif를 늘리지 않는다.
 
 # 도구
-- Python은 `uv`만 쓴다 (`uv add`, `uv run pytest`). 전역 pip 금지. `requirements.txt`는 `uv export --format requirements.txt --no-hashes --no-emit-project -o requirements.txt`로 생성
+- Python은 `uv`만 쓴다 (`uv add`, `uv run pytest`). 전역 pip 금지. `requirements.txt`는 기본으로 만들지 않는다. 요청받으면 `uv export --format requirements.txt --no-hashes --no-emit-project -o requirements.txt`로 생성
 - 의존성: fastapi, uvicorn, pyserial, python-multipart / 개발: pytest, httpx. 이 밖의 것은 물어보고 추가
 - macOS와 Windows에서 모두 실행되어야 한다. `pathlib` 사용
 
