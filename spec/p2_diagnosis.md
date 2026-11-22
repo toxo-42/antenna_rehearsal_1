@@ -1,13 +1,16 @@
 # P2 — 진단 규칙과 판정 카드 (40분)
 
-`src/diagnosis.py`, `guides.py`, `verdict.py`를 만들어 줘. 규칙 1개 = 함수 1개, 규칙 목록을 순서대로 실행한다. 결과 항목은 `key, title, evidence, action, guide`.
+`src/diagnosis.py`, `guides.py`, `verdict.py`를 만들어 줘. 규칙은 단계별 파일(`rules_none.py`, `rules_offtarget.py`, `rules_unmatched.py`, `rules_common.py`)에 두고, 규칙들이 함께 쓰는 문구·반올림 도구는 `rule_tools.py`에 둔다. 목표 주파수의 X를 구하는 `reactance_at`은 `impedance.py`에 추가한다. 규칙 1개 = 함수 1개, 규칙 목록을 순서대로 실행한다. 결과 항목은 `key, title, evidence, action, guide`.
 
 ## 규칙 함수의 형태
 - 모든 규칙은 `(ctx: RuleContext) -> Diagnosis | None`. `RuleContext`는 p1의 판정 결과, 스윕, 안테나, cal_mode를 담는 읽기 전용 값이다
 - 규칙은 `ctx`만 본다. 다른 규칙의 결과 목록을 보지 않는다. 다른 규칙의 조건이 필요하면(예: other_resonance의 "third_mode가 아니고", uncalibrated의 "positive_s11이 아님") 그 조건을 판정하는 함수를 따로 두고 함께 쓴다
 - 결과 목록을 보고 항목을 지우거나 넣는 일은 아래 "배타 규칙" 두 가지와 "폴백" 한 가지뿐이고, 규칙을 모두 실행한 뒤 함수 하나에서 처리한다
 - 파일이 300줄을 넘으면 규칙을 단계별 파일(`rules_none.py`, `rules_offtarget.py` 등)로 나누고 `diagnosis.py`에는 규칙 목록과 실행만 둔다
-- 표기: status의 수치는 소수 2자리, action의 조정량 %는 정수로 반올림. 반올림 결과가 0이면 "1 % 미만"으로 쓴다
+- 표기: status의 수치는 소수 2자리, action의 조정량 %는 정수로 반올림(0.5는 올림). 계산값이 `25.49999999999999`처럼 어긋나도 25.5 %는 26 %가 되도록 p1의 허용 오차를 더해 반올림한다. 반올림 결과가 0이면 "1 % 미만"으로 쓴다
+- positive_s11의 "S11 > 0 dB"만은 허용 오차 없이 `> 0`으로 비교한다. 아주 작은 양수도 잘못된 측정이다
+- 목표 주파수의 X: 목표가 측정점과 정확히 같으면 보간하지 않고 그 점의 X를 쓴다. 결과가 유한하지 않으면 값이 없는 것으로 보고 방향 없는 안내로 간다
+- title은 진단을 한 구로 요약하고 원인을 단정하지 않는다 (예: "손실이 있을 수 있음", "급전부가 단락된 것으로 보임")
 
 용어: "목표 공진" = p1의 `selected`. "정합 공진" = `band`가 있는 공진. "다른 공진" = p1의 `others`(목표에 가까운 순). "공진이 여럿이면 첫 번째" = `others` 순서상 첫 번째.
 
@@ -41,7 +44,7 @@
 
 배타 규칙: positive_s11이 나오면 그것만 낸다. feed_* 또는 lossy가 나오면 out_of_range는 내지 않는다.
 폴백: uncalibrated를 빼고 결과가 비어 있으면 `no_resonance`(할 일: 범위를 넓히고 점 수를 늘려 재측정, 납땜과 연결 확인)를 맨 앞에 넣는다.
-길이 조정 문구에는 항상 "초기 추정, 한 번에 절반씩, 자르기 전에 다시 측정"을 넣는다.
+길이를 바꾸라는 action(length_far, too_short, too_long, 방향이 있는 reactance, third_mode)에는 항상 "초기 추정, 한 번에 절반씩, 자르기 전에 다시 측정"을 넣는다. feed_lead에는 넣지 않는다.
 
 ## guide 문장 (그대로 사용. 화면에 기본으로 보여 주는 설명이다)
 값이 객체인 key(`length_far`, `too_short`, `too_long`, `r_low`, `r_high`, `narrow`)는 안테나 종류로 문장을 고른다.
@@ -101,7 +104,7 @@ cal_mode = unknown이면 positive를 뺀 모든 경우의 끝에 uncalibrated가
 ## 카드
 `stage, headline, status, diagnoses`. 직렬화한 모양은 `contract/measurement.json`의 `card`와 같아야 한다.
 - stage: p1의 단계 값 그대로. 단, positive_s11이 나오면 `invalid`. 카드의 stage 값은 `none | unmatched | offtarget | narrow | good | invalid` (`invalid`는 카드에만 있고 p1의 단계에는 없다)
-- headline: 단계별 한 문장. 단, positive_s11이 나오면 단계 문장 대신 "측정값이 올바르지 않아 판정할 수 없다"는 뜻의 문장을 쓴다 (p1 단계가 good이어도 합격으로 보이지 않게). band_edge가 나오면 stage는 `offtarget` 그대로 두고, 단계 문장 대신 "목표가 대역 끝에 가까워 이 측정 간격으로는 확정할 수 없다"는 뜻의 문장을 쓴다 (공진이 목표와 같은데 "맞지 않는다"고 하지 않게)
+- headline: 단계별 한 문장이고 아래 문장을 그대로 쓴다. `none` "목표 근처에서 공진을 찾지 못했습니다", `unmatched` "공진은 있지만 정합이 얕습니다", `offtarget` "공진은 있지만 목표 주파수에 맞지 않습니다", `narrow` "목표에서 공진하지만 대역이 좁습니다", `good` "목표 주파수에서 잘 동작합니다". 단, positive_s11이 나오면 단계 문장 대신 "측정값이 올바르지 않아 판정할 수 없다"는 뜻의 문장을 쓴다 (p1 단계가 good이어도 합격으로 보이지 않게). band_edge가 나오면 stage는 `offtarget` 그대로 두고, 단계 문장 대신 "목표가 대역 끝에 가까워 이 측정 간격으로는 확정할 수 없다"는 뜻의 문장을 쓴다 (공진이 목표와 같은데 "맞지 않는다"고 하지 않게)
 - status: 공진·목표 차이·깊이·대역, 공진점 R/X, 교정 상태와 측정 간격
   - 값이 없는 항목은 줄을 내지 않는다 (unmatched의 대역, 복소값 없는 스윕의 R/X)
   - 목표 공진이 없으면 공진 줄 대신 "목표 근처에 공진 없음"을 낸다. 다른 공진의 수치는 status에 쓰지 않고 해당 진단의 evidence에만 쓴다
@@ -116,4 +119,4 @@ cal_mode = unknown이면 positive를 뺀 모든 경우의 끝에 uncalibrated가
 - reactance 방향: `rlc(425, 50, 36)`, 400/430/460 MHz, 목표 420 MHz → 늘리기 (공진점 430 MHz의 X는 양수지만 400~430 MHz 사이를 보간한 목표점 X는 음수)
 - positive_s11 + good: 400/433/466 MHz, +0.1/-30/0 dB, 목표 433 MHz → 카드 stage는 `invalid`, diagnoses는 positive_s11 하나, headline은 합격 문장이 아님
 - 조정량이 0으로 반올림되면 "1 % 미만"
-- 카드 직렬화 key가 `contract/measurement.json`의 `card`와 일치
+- `offtarget_low`를 `cal_mode = vna`로 판정한 카드가 `contract/measurement.json`의 `card`와 글자까지 일치
