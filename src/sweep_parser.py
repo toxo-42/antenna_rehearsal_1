@@ -25,8 +25,13 @@ RANGE_TEXT = "주파수 1 Hz~1 THz, S11 -1000~1000 dB, S11_real·S11_imag -1000~
 
 
 def parse_sweep_csv(text: str) -> Sweep:
-    """Read `Frequency_Hz,S11_dB` (and optional `S11_real,S11_imag`); other columns are ignored."""
-    reader = csv.reader(io.StringIO(text.lstrip("﻿"), newline=""), strict=True)
+    """Read `Frequency_Hz,S11_dB` (and optional `S11_real,S11_imag`); other columns are ignored.
+
+    Also reads the instrument export: `#` lines are skipped, the delimiter is `,` or `;` as found
+    in the header line, `freq[Hz]` means Frequency_Hz and a name ending in `S11[dB]` means S11_dB.
+    """
+    text = text.lstrip("﻿")
+    reader = csv.reader(io.StringIO(text, newline=""), delimiter=_delimiter(text), strict=True)
     try:
         return _read_sweep(reader)
     except csv.Error:
@@ -35,8 +40,28 @@ def parse_sweep_csv(text: str) -> Sweep:
         ) from None
 
 
+def _is_comment(row: list[str]) -> bool:
+    return bool(row) and row[0].startswith("#")
+
+
+def _delimiter(text: str) -> str:
+    """`;` only when the header line has `;` and no `,`; otherwise the usual `,`."""
+    lines = (line for line in text.splitlines() if not line.startswith("#"))
+    header = next(lines, "")
+    return ";" if ";" in header and "," not in header else ","
+
+
+def _column_name(cell: str) -> str:
+    name = cell.strip()
+    if name == "freq[Hz]":
+        return "Frequency_Hz"
+    if name.endswith("S11[dB]"):
+        return "S11_dB"
+    return name
+
+
 def _read_sweep(reader: Iterator[list[str]]) -> Sweep:
-    header = next(reader, None)
+    header = next((row for row in reader if not _is_comment(row)), None)
     if header is None or _is_blank(header):
         raise ValueError("CSV가 비어 있습니다. 첫 줄에 Frequency_Hz,S11_dB 헤더가 필요합니다.")
     columns = _column_indexes(header)
@@ -45,7 +70,7 @@ def _read_sweep(reader: Iterator[list[str]]) -> Sweep:
     rows = [
         (reader.line_num, _read_row(row, reader.line_num, [(n, columns[n]) for n in names]))
         for row in reader
-        if not _is_blank(row)
+        if not _is_blank(row) and not _is_comment(row)
     ]
     _check_points(rows)
     values = [row for _, row in rows]
@@ -61,7 +86,7 @@ def _is_blank(row: list[str]) -> bool:
 
 
 def _column_indexes(header: list[str]) -> dict[str, int]:
-    names = [name.strip() for name in header]
+    names = [_column_name(name) for name in header]
     repeated = [name for name in KNOWN_COLUMNS if names.count(name) > 1]
     if repeated:
         raise ValueError(f"CSV 헤더에 {repeated[0]} 열이 두 번 있습니다. 하나만 남겨 주세요.")

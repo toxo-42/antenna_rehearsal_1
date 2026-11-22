@@ -3,7 +3,7 @@
 from collections.abc import Callable, Sequence
 
 from src.impedance import low_freq_gamma_real
-from src.models import Diagnosis, Resonance, RuleContext, Stage
+from src.models import POSITIVE_S11_DB, Diagnosis, Resonance, RuleContext, Stage
 from src.rule_tools import LENGTHEN, SHORTEN, amount_text, finding, length_action, target_text
 from src.tolerance import at_least, at_most
 
@@ -20,8 +20,9 @@ def _share(values: Sequence[float], counts: Callable[[float], bool]) -> float:
 
 
 def has_positive_s11(ctx: RuleContext) -> bool:
-    """A passive antenna cannot reflect more than it receives, so any point above 0 dB is bad."""
-    return any(value > 0.0 for value in ctx.sweep.s11_db)
+    """A passive antenna cannot reflect more than it receives. Small positives near 0 dB are
+    noise, so only a point above POSITIVE_S11_DB (no tolerance) marks the sweep as bad."""
+    return any(value > POSITIVE_S11_DB for value in ctx.sweep.s11_db)
 
 
 def positive_s11(ctx: RuleContext) -> Diagnosis | None:

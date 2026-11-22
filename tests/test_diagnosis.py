@@ -7,7 +7,7 @@ import pytest
 
 from src.diagnosis import RULES, diagnose
 from src.guides import guide_for
-from src.models import CalMode, Diagnosis
+from src.models import POSITIVE_S11_DB, CalMode, Diagnosis
 from src.synthetic import SAMPLE_NAMES, make_sample
 from tests.diag_helpers import antenna, context, keys, magnitude_sweep
 
@@ -146,23 +146,38 @@ def test_every_diagnosis_is_complete_and_uses_the_fixed_guide(name: str, cal_mod
 
 
 def test_positive_s11_hides_everything_else() -> None:
-    sweep = magnitude_sweep([0.1, -30.0, 0.0], start=400.0, step=33.0)
+    sweep = magnitude_sweep([0.3, -30.0, 0.0], start=400.0, step=33.0)
 
     assert keys(sweep, antenna(433.0), CalMode.UNKNOWN) == ["positive_s11"]
 
 
-def test_any_value_above_zero_db_is_positive_however_small() -> None:
-    sweep = magnitude_sweep([1e-10, -30.0, 0.0], start=400.0, step=33.0)
+def test_any_value_just_above_the_threshold_is_positive() -> None:
+    sweep = magnitude_sweep([POSITIVE_S11_DB + 1e-10, -30.0, 0.0], start=400.0, step=33.0)
 
     assert keys(sweep, antenna(433.0)) == ["positive_s11"]
-    evidence = diagnose(context(sweep, antenna(433.0)))[0].evidence
-    assert "+0.00" not in evidence  # the evidence must not read as exactly zero
 
 
-def test_zero_db_is_not_positive() -> None:
-    sweep = magnitude_sweep([0.0, -30.0, 0.0], start=400.0, step=33.0)
+@pytest.mark.parametrize("first_db", [0.0, 0.1, 0.2])
+def test_small_positive_up_to_the_threshold_is_noise(first_db: float) -> None:
+    sweep = magnitude_sweep([first_db, -30.0, 0.0], start=400.0, step=33.0)
 
     assert "positive_s11" not in keys(sweep, antenna(433.0))
+
+
+def test_positive_threshold_is_two_tenths_of_a_db() -> None:
+    assert POSITIVE_S11_DB == 0.2
+
+
+def test_uncalibrated_action_says_values_are_for_trend_only() -> None:
+    sweep = magnitude_sweep([-2.0, -2.5, -2.0])
+
+    found = diagnose(context(sweep, antenna(410.0), CalMode.UNKNOWN))[-1]
+
+    assert found.key == "uncalibrated"
+    assert found.action == (
+        "수치는 경향 참고용. 교정된 측정으로 다시 확인 "
+        "(USB로 받은 값에는 장비의 교정이 반영되지 않는다)"
+    )
 
 
 def test_no_resonance_fallback_when_no_rule_matches() -> None:

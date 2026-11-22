@@ -12,6 +12,9 @@ WEAK_DIP_MIN_DEPTH_DB = 2.0
 CANDIDATE_WINDOW_PCT = 20.0
 REFERENCE_OHM = 50.0
 LOW_FREQ_FRACTION = 0.1
+# S11 above this is a bad measurement. Calibrated readings reach about +0.02 dB and USB
+# readings +0.07 dB near 0 dB, while a broken calibration goes past +1 dB.
+POSITIVE_S11_DB = 0.2
 
 
 class AntennaKind(StrEnum):

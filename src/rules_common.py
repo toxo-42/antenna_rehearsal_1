@@ -85,5 +85,8 @@ def good(ctx: RuleContext) -> Diagnosis | None:
 def uncalibrated(ctx: RuleContext) -> Diagnosis | None:
     if ctx.cal_mode is not CalMode.UNKNOWN or has_positive_s11(ctx):
         return None
-    action = "본체 OSL 교정 후 같은 조건으로 재측정"
+    action = (
+        "수치는 경향 참고용. 교정된 측정으로 다시 확인 "
+        "(USB로 받은 값에는 장비의 교정이 반영되지 않는다)"
+    )
     return finding(ctx, "uncalibrated", "교정이 확인되지 않음", "교정 상태를 알 수 없음", action)

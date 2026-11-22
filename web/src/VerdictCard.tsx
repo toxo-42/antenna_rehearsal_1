@@ -25,6 +25,7 @@ export function VerdictCard({ card }: { card: Card }) {
           </ul>
         </div>
       )}
+      <ExplainBox />
       <AskBox />
     </section>
   )
@@ -72,6 +73,20 @@ function Pager({ index, count, onMove }: { index: number; count: number; onMove:
       >
         다음 원인 →
       </button>
+    </div>
+  )
+}
+
+/** Place for the plain-language explanation. It is connected in P5 and stays disabled until then. */
+function ExplainBox() {
+  return (
+    <div className="ask">
+      <button type="button" disabled>
+        쉬운 말로 설명 듣기
+      </button>
+      <p className="ask-answer">
+        <span className="ai-tag">AI 설명(참고용)</span> 풀어 쓴 글은 이 표시와 함께 여기에 나옵니다
+      </p>
     </div>
   )
 }

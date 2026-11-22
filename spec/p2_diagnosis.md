@@ -8,7 +8,7 @@
 - 결과 목록을 보고 항목을 지우거나 넣는 일은 아래 "배타 규칙" 두 가지와 "폴백" 한 가지뿐이고, 규칙을 모두 실행한 뒤 함수 하나에서 처리한다
 - 파일이 300줄을 넘으면 규칙을 단계별 파일(`rules_none.py`, `rules_offtarget.py` 등)로 나누고 `diagnosis.py`에는 규칙 목록과 실행만 둔다
 - 표기: status의 수치는 소수 2자리, action의 조정량 %는 정수로 반올림(0.5는 올림). 계산값이 `25.49999999999999`처럼 어긋나도 25.5 %는 26 %가 되도록 p1의 허용 오차를 더해 반올림한다. 반올림 결과가 0이면 "1 % 미만"으로 쓴다
-- positive_s11의 "S11 > 0 dB"만은 허용 오차 없이 `> 0`으로 비교한다. 아주 작은 양수도 잘못된 측정이다
+- positive_s11은 S11이 **+0.2 dB를 넘는** 점이 있을 때만 낸다(허용 오차 없이 `> 0.2`). 0 dB 근처의 작은 양수는 잡음이다. 실측에서 교정된 계측기 값은 최대 +0.02 dB, USB 수신값은 +0.07 dB까지 나왔고, 교정이 틀어진 측정은 +1 dB를 넘었다. 기준값은 `models.py`의 상수로 둔다
 - 목표 주파수의 X: 목표가 측정점과 정확히 같으면 보간하지 않고 그 점의 X를 쓴다. 결과가 유한하지 않으면 값이 없는 것으로 보고 방향 없는 안내로 간다
 - title은 진단을 한 구로 요약하고 원인을 단정하지 않는다 (예: "손실이 있을 수 있음", "급전부가 단락된 것으로 보임")
 
@@ -19,7 +19,7 @@
 ## 규칙 (위에서부터)
 | key | 조건 | 할 일 |
 |---|---|---|
-| positive_s11 | S11 > 0 dB인 점이 있음 | OSL 교정을 다시 하고 커넥터 체결 확인 후 재측정 |
+| positive_s11 | S11 > +0.2 dB인 점이 있음 | OSL 교정을 다시 하고 커넥터 체결 확인 후 재측정 |
 | feed_short | 급전 공통 조건(아래)이고 low_freq_gamma_real < -0.5 | 테스터로 내심-접지 저항 확인, 납땜 브리지 확인 |
 | feed_open | 급전 공통 조건이고 low_freq_gamma_real > 0.5 | 안테나 선과 내심의 납땜 확인, 범위를 넓혀 재측정 |
 | feed_fault | 급전 공통 조건이고 low_freq_gamma_real이 None(복소값 없음)이거나 -0.5 이상 0.5 이하 | 내심-접지 저항 확인, 재납땜 |
@@ -38,7 +38,7 @@
 | other_resonance | third_mode가 아니고, 다른 정합 공진이 있음. **length_far에 쓴 공진은 제외**. 남은 것이 여럿이면 evidence에는 첫 번째 | 케이블 위치를 바꾸거나 페라이트 후 재측정 |
 | narrow | narrow | 모노폴: 도체를 굵게. 패치: 기판을 두껍게 또는 유전율 낮게 |
 | good | good | 손·케이블 위치를 바꿔도 유지되는지 확인하고 저장 |
-| uncalibrated | cal_mode가 unknown이고 positive_s11이 아님 | 본체 OSL 교정 후 같은 조건으로 재측정 |
+| uncalibrated | cal_mode가 unknown이고 positive_s11이 아님 | 수치는 경향 참고용. 교정된 측정으로 다시 확인 (USB로 받은 값에는 장비의 교정이 반영되지 않는다) |
 
 급전 공통 조건: none **이고** -1 dB보다 큰 점이 90 % 이상 **이고** 다른 공진 없음. 세 가지를 모두 만족한 뒤에만 low_freq_gamma_real로 feed_short / feed_open / feed_fault를 가른다. 크기만 있는 스윕이라도 공통 조건을 만족하지 않으면 feed_fault를 내지 않는다.
 
@@ -117,6 +117,20 @@ cal_mode = unknown이면 positive를 뺀 모든 경우의 끝에 uncalibrated가
 - 음성: 평탄한 트레이스는 out_of_range 아님. 공통 조건을 못 채운 크기 전용 스윕은 feed_fault 아님
 - 경계: 공진점 R = 30, 90은 reactance. 모드 비 2.6, 3.4는 third_mode. low_freq_gamma_real = ±0.5는 feed_fault
 - reactance 방향: `rlc(425, 50, 36)`, 400/430/460 MHz, 목표 420 MHz → 늘리기 (공진점 430 MHz의 X는 양수지만 400~430 MHz 사이를 보간한 목표점 X는 음수)
-- positive_s11 + good: 400/433/466 MHz, +0.1/-30/0 dB, 목표 433 MHz → 카드 stage는 `invalid`, diagnoses는 positive_s11 하나, headline은 합격 문장이 아님
+- positive_s11 + good: 400/433/466 MHz, +0.3/-30/0 dB, 목표 433 MHz → 카드 stage는 `invalid`, diagnoses는 positive_s11 하나, headline은 합격 문장이 아님
+- 작은 양수는 정상 판정: 같은 스윕에서 첫 점이 +0.1 dB이면 positive_s11이 없고 stage는 p1의 단계 그대로. 정확히 +0.2 dB도 positive_s11이 아님
+
+실측 파일(`tests/data/`, 목표와 종류는 p1의 실측 표와 같음)의 key 순서. cal_mode = unknown이면 끝에 uncalibrated가 붙는다.
+
+| 파일 (목표 MHz) | 카드 stage | key 순서 |
+|---|---|---|
+| monopole_5cm.csv (1350) | good | other_resonance, good |
+| monopole_11.5cm.csv (650) | unmatched | match_unknown, common_mode, other_resonance |
+| monopole_12cm.csv (625) | unmatched | match_unknown, common_mode, other_resonance |
+| monopole_12cm.csv (433) | none | length_far, other_resonance |
+| monopole_14cm.csv (535) | narrow | other_resonance, narrow |
+| saa2_patch_2450.csv (2450) | good | good |
+
+(모노폴 파일은 모두 첫 점이 +0.001~+0.007 dB다. 이 때문에 `invalid`가 되면 안 된다)
 - 조정량이 0으로 반올림되면 "1 % 미만"
 - `offtarget_low`를 `cal_mode = vna`로 판정한 카드가 `contract/measurement.json`의 `card`와 글자까지 일치

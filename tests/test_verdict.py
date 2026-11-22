@@ -32,7 +32,7 @@ def test_card_stage_is_the_p1_stage(name: str) -> None:
 
 
 def test_positive_s11_makes_the_card_invalid_even_when_p1_says_good() -> None:
-    sweep = magnitude_sweep([0.1, -30.0, 0.0], start=400.0, step=33.0)
+    sweep = magnitude_sweep([0.3, -30.0, 0.0], start=400.0, step=33.0)
     ant = antenna(433.0, AntennaKind.PATCH)
     good = build_card(magnitude_sweep([0.0, -30.0, 0.0], start=400.0, step=33.0), ant, CalMode.VNA)
     assert good.stage is CardStage.GOOD
@@ -43,6 +43,17 @@ def test_positive_s11_makes_the_card_invalid_even_when_p1_says_good() -> None:
     assert [d.key for d in card.diagnoses] == ["positive_s11"]
     assert card.headline != good.headline
     assert "판정할 수 없" in card.headline
+
+
+@pytest.mark.parametrize("first_db", [0.1, 0.2])
+def test_small_positive_keeps_the_p1_stage(first_db: float) -> None:
+    sweep = magnitude_sweep([first_db, -30.0, 0.0], start=400.0, step=33.0)
+    ant = antenna(433.0, AntennaKind.PATCH)
+
+    card = build_card(sweep, ant, CalMode.VNA)
+
+    assert card.stage.value == classify(sweep, ant).stage.value
+    assert "positive_s11" not in [d.key for d in card.diagnoses]
 
 
 def test_positive_sample_is_invalid() -> None:

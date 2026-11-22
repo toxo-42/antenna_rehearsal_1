@@ -133,3 +133,54 @@ def test_duplicate_ignored_header_is_fine() -> None:
     text = "Frequency_Hz,S11_dB,Note,Note\n1e8,-1,a,b\n2e8,-2,a,b\n3e8,-3,a,b\n"
 
     assert parse_sweep_csv(text).s11_db == (-1.0, -2.0, -3.0)
+
+
+INSTRUMENT = (
+    "# Version 1.00\n"
+    "#\n"
+    "freq[Hz];Trc1_S11[dB];\n"
+    "1.000000000000000E+08;-1.0E+00;\n"
+    "2.000000000000000E+08;-1.25E+01;\n"
+    "3.000000000000000E+08;-2.0E+00;\n"
+)
+
+
+def test_reads_the_instrument_export_format() -> None:
+    sweep = parse_sweep_csv(INSTRUMENT)
+
+    assert sweep.f_mhz == (100.0, 200.0, 300.0)
+    assert sweep.s11_db == (-1.0, -12.5, -2.0)
+    assert sweep.gamma is None
+
+
+def test_hash_lines_are_skipped_anywhere() -> None:
+    text = "# note\nFrequency_Hz,S11_dB\n1e8,-1\n# mid\n2e8,-2\n3e8,-3\n"
+
+    assert parse_sweep_csv(text).f_mhz == (100.0, 200.0, 300.0)
+
+
+def test_semicolon_header_with_plain_names_and_no_trailing_delimiter() -> None:
+    text = "Frequency_Hz;S11_dB\n1e8;-1\n2e8;-2\n3e8;-3\n"
+
+    assert parse_sweep_csv(text).s11_db == (-1.0, -2.0, -3.0)
+
+
+@pytest.mark.parametrize("name", ["S11[dB]", "Trc2_S11[dB]"])
+def test_any_name_ending_in_s11_db_brackets_is_s11_db(name: str) -> None:
+    text = f"freq[Hz],{name}\n1e8,-1\n2e8,-2\n3e8,-3\n"
+
+    assert parse_sweep_csv(text).s11_db == (-1.0, -2.0, -3.0)
+
+
+def test_instrument_alias_and_plain_name_together_count_as_duplicate() -> None:
+    text = "freq[Hz];Frequency_Hz;S11_dB\n1e8;1e8;-1\n2e8;2e8;-2\n3e8;3e8;-3\n"
+
+    with pytest.raises(ValueError, match="Frequency_Hz 열이 두 번"):
+        parse_sweep_csv(text)
+
+
+def test_line_numbers_in_errors_count_the_skipped_hash_lines() -> None:
+    text = "# a\n# b\nfreq[Hz];S11[dB];\n1e8;-1;\n2e8;abc;\n3e8;-3;\n"
+
+    with pytest.raises(ValueError, match="5행"):
+        parse_sweep_csv(text)
