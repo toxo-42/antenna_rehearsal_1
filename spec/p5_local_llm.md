@@ -2,7 +2,7 @@
 
 로컬 LLM(Ollama)은 두 가지 일을 한다. **A. 판정 카드를 쉬운 말로 풀어 쓴다. B. 학생의 질문을 검증된 설명에 연결한다.** 어느 쪽도 카드의 숫자·방향·결론을 바꾸지 못한다. 측정값은 `127.0.0.1`의 Ollama에만 보낸다.
 
-공통: 모델은 환경 변수 `OLLAMA_MODEL`(대회 기본값 `qwen3.5:4b`), 비어 있으면 두 기능 모두 꺼진다. HTTP는 표준 `urllib.request`로 보내고 실행용 의존성을 추가하지 않는다. `POST {base_url}/api/generate`, `stream=false, think=false, keep_alive="10m"`. **`format`을 쓰지 않는다** (Homebrew판 0.40.16에서 501 오류 확인). Ollama를 꺼도 카드 API 응답은 같다.
+공통: 모델은 환경 변수 `OLLAMA_MODEL`(대회 기본값 `qwen3.5:4b`), 비어 있으면 두 기능 모두 꺼진다. HTTP는 표준 `urllib.request`로 보내고 실행용 의존성을 추가하지 않는다. **프록시를 쓰지 않는 opener로 보낸다**(`urlopen`을 그대로 쓰면 `HTTP_PROXY`가 설정된 PC에서 카드 값과 질문이 프록시로 나간다). 가짜 Ollama와 가짜 프록시를 띄워, `HTTP_PROXY`·`http_proxy`가 있어도 요청이 프록시로 가지 않는지 테스트한다. `POST {base_url}/api/generate`, `stream=false, think=false, keep_alive="10m"`. **`format`을 쓰지 않는다** (Homebrew판 0.40.16에서 501 오류 확인). Ollama를 꺼도 카드 API 응답은 같다.
 
 ## P5-A. 카드 풀어 쓰기
 `src/explain.py`를 만들고 `POST /api/measurements/{id}/explain`을 추가해 줘.
