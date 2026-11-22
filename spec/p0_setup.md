@@ -3,7 +3,7 @@
 빈 폴더에서 프로젝트 골격을 만들어 줘. 기능 구현은 하지 마.
 
 1. git 저장소가 아니면 `git init`. `uv init`(예제 파일은 삭제), 의존성 추가, `src/__init__.py`, `tests/`, `.gitignore`(.venv, node_modules, __pycache__, *.db, web/dist, .DS_Store). `pyproject.toml`에는 `[tool.ruff]`(`line-length = 100`), `[tool.pytest.ini_options]`(`pythonpath = ["."]`, `testpaths = ["tests"]`), `[tool.claude-kit]`(`check_size = true`) 구획을 넣는다
-2. `app.py`: FastAPI 앱 생성. `GET /api/health` → `{"mode":"local","ollama":false,"ports":[]}`. `web/dist`가 있으면 `/`에서 서빙. `tests/test_app.py`에 health 응답 테스트 1개
+2. `app.py`: FastAPI 앱 생성. `GET /api/health` → `{"mode":"local","ollama":false,"explain":false,"ports":[]}` (p5부터 `ollama`는 질문 연결, `explain`은 글 풀어 쓰기가 켜져 있는지를 `OLLAMA_MODEL`·`OLLAMA_EXPLAIN` 설정에 따라 보여 준다). `web/dist`가 있으면 `/`에서 서빙. `tests/test_app.py`에 health 응답 테스트 1개
 3. `web/`: Vite React TypeScript 골격. 개발 서버가 `/api`를 `http://localhost:8000`으로 프록시. `web/tsconfig.app.json`의 `types`에 `"node"`를 더한다(p4에서 `node --test`로 도는 테스트 파일이 타입 검사를 통과하게)
 4. `contract/measurement.json`: 프론트와 백엔드가 공유할 응답 예시. 아래를 그대로 저장
 

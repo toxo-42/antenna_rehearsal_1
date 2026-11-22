@@ -6,8 +6,12 @@ import {
   SERVER_DOWN_MESSAGE,
   createAntenna,
   describeError,
+  askQuestion,
+  explainMeasurement,
+  getHealth,
   getMeasurement,
   listAntennas,
+  listGuides,
   listMeasurements,
   listSamples,
   measureSample,
@@ -176,4 +180,31 @@ test('a CSV upload sends the file, antenna_id and cal_mode as multipart', async 
   assert.equal((form.get('file') as File).name, 'sweep.csv')
   assert.equal(form.get('antenna_id'), '4')
   assert.equal(form.get('cal_mode'), 'vna')
+})
+
+test('health and the guide list are plain reads', async () => {
+  const { sent, fetchFn } = recorder('[]')
+  await getHealth(fetchFn)
+  await listGuides(9, fetchFn)
+  assert.deepEqual(
+    sent.map((item) => item.path),
+    ['/api/health', '/api/measurements/9/guides'],
+  )
+  assert.ok(sent.every((item) => item.init === undefined))
+})
+
+test('explain posts to the measurement without a body', async () => {
+  const { sent, fetchFn } = recorder()
+  await explainMeasurement(9, fetchFn)
+  assert.equal(sent[0].path, '/api/measurements/9/explain')
+  assert.equal(sent[0].init?.method, 'POST')
+  assert.equal(sent[0].init?.body, undefined)
+})
+
+test('a question posts {question} to the measurement', async () => {
+  const { sent, fetchFn } = recorder()
+  await askQuestion(9, '선이 길면?', fetchFn)
+  assert.equal(sent[0].path, '/api/measurements/9/ask')
+  assert.equal(sent[0].init?.method, 'POST')
+  assert.deepEqual(JSON.parse(String(sent[0].init?.body)), { question: '선이 길면?' })
 })

@@ -74,6 +74,49 @@ export interface MeasurementRow {
   change_note: string
 }
 
+/** `GET /api/health`. `ollama`: questions are linked by a model. `explain`: show the button. */
+export interface Health {
+  mode: string
+  ollama: boolean
+  explain: boolean
+  ports: string[]
+}
+
+export type ExplainStatus = 'ok' | 'rejected' | 'failed' | 'off'
+
+/** `POST /api/measurements/{id}/explain`. `text` is null unless the status is ok. */
+export interface Explanation {
+  status: ExplainStatus
+  text: string | null
+  warnings: string[]
+  model: string | null
+  seconds: number | null
+}
+
+export type AskStatus = 'matched' | 'none' | 'failed'
+
+/** `POST /api/measurements/{id}/ask`. `action` is the card's own value, only when `in_card`. */
+export interface AskAnswer {
+  status: AskStatus
+  key: string | null
+  guide: string | null
+  in_card: boolean
+  action: string | null
+}
+
+export interface GuideItem {
+  key: string
+  guide: string
+  in_card: boolean
+  action: string | null
+}
+
+/** `GET /api/measurements/{id}/guides`: every guide grouped by topic. */
+export interface GuideTopic {
+  topic: string
+  items: GuideItem[]
+}
+
 export interface AntennaInput {
   name: string
   kind: Kind

@@ -115,7 +115,7 @@ function PickedCard({ picked, onOpen }: { picked: Picked | null; onOpen: OnOpen 
           그래프와 함께 보기 →
         </button>
       </p>
-      <VerdictCard key={measurement.id} card={measurement.card} />
+      <VerdictCard key={measurement.id} card={measurement.card} measurementId={measurement.id} />
     </>
   )
 }

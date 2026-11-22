@@ -4,7 +4,11 @@
 import type {
   Antenna,
   AntennaInput,
+  AskAnswer,
   CalMode,
+  Explanation,
+  GuideTopic,
+  Health,
   Measurement,
   MeasurementRow,
   Sample,
@@ -137,4 +141,25 @@ export function listMeasurements(
 
 export function getMeasurement(id: number, fetchFn: typeof fetch = fetch): Promise<Measurement> {
   return request(`/api/measurements/${id}`, undefined, fetchFn)
+}
+
+export function getHealth(fetchFn: typeof fetch = fetch): Promise<Health> {
+  return request('/api/health', undefined, fetchFn)
+}
+
+/** Ask the local model to rewrite the card in plain words. It can take a minute or two. */
+export function explainMeasurement(id: number, fetchFn: typeof fetch = fetch): Promise<Explanation> {
+  return request(`/api/measurements/${id}/explain`, { method: 'POST' }, fetchFn)
+}
+
+export function askQuestion(
+  id: number,
+  question: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<AskAnswer> {
+  return request(`/api/measurements/${id}/ask`, postJson({ question }), fetchFn)
+}
+
+export function listGuides(id: number, fetchFn: typeof fetch = fetch): Promise<GuideTopic[]> {
+  return request(`/api/measurements/${id}/guides`, undefined, fetchFn)
 }

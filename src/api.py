@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, StrictFloat, StrictInt
 from starlette.exceptions import HTTPException
 
-from src import service
+from src import assist, service
 
 router = APIRouter(prefix="/api")
 
@@ -35,9 +35,14 @@ class MeasurementBody(BaseModel):
     change_note: str = ""
 
 
-def install(app: FastAPI, db_path: Path) -> None:
+class QuestionBody(BaseModel):
+    question: str
+
+
+def install(app: FastAPI, db_path: Path, parts: assist.LlmParts) -> None:
     """Attach the routes and the Korean error responses to an app that uses `db_path`."""
     app.state.db_path = db_path
+    app.state.llm = parts
     app.include_router(router)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(HTTPException, _body_error)
@@ -47,6 +52,10 @@ def install(app: FastAPI, db_path: Path) -> None:
 
 def _db(request: Request) -> Path:
     return request.app.state.db_path
+
+
+def _llm(request: Request) -> assist.LlmParts:
+    return request.app.state.llm
 
 
 def status_for(exc: Exception) -> int:
@@ -124,3 +133,19 @@ def list_measurements(
 @router.get("/measurements/{measurement_id}")
 def get_measurement(request: Request, measurement_id: int) -> dict[str, Any]:
     return service.get_measurement(_db(request), measurement_id)
+
+
+@router.post("/measurements/{measurement_id}/explain")
+def explain_measurement(request: Request, measurement_id: int) -> dict[str, Any]:
+    return assist.explain_measurement(_db(request), measurement_id, _llm(request).explainer)
+
+
+@router.post("/measurements/{measurement_id}/ask")
+def ask_measurement(request: Request, measurement_id: int, body: QuestionBody) -> dict[str, Any]:
+    router_part = _llm(request).router
+    return assist.ask_measurement(_db(request), measurement_id, body.question, router_part)
+
+
+@router.get("/measurements/{measurement_id}/guides")
+def guide_choices(request: Request, measurement_id: int) -> list[dict[str, Any]]:
+    return assist.guide_choices(_db(request), measurement_id)

@@ -25,7 +25,7 @@ export function CardPage({ measurement }: { measurement: Measurement | null }) {
           <S11Chart measurement={measurement} />
         </section>
         <div className="column">
-          <VerdictCard key={measurement.id} card={measurement.card} />
+          <VerdictCard key={measurement.id} card={measurement.card} measurementId={measurement.id} />
         </div>
       </div>
     </div>

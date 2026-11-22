@@ -105,6 +105,13 @@ button.link { padding: 0; border: 0; background: none; color: var(--accent); fon
 .ask input { flex: 1; background: var(--neutral-bg); }
 .ask-answer { font-size: 13px; color: var(--muted); }
 .ai-tag { padding: 1px 8px; border: 1px solid var(--muted); border-radius: 4px; font-size: 12px; font-weight: 700; }
+.explain, .ask-result { display: flex; flex-direction: column; gap: 8px; }
+.explain h4 { margin-top: 8px; font-size: 16px; }
+.explain ol { margin: 0; padding-left: 24px; }
+.explain-warning { color: var(--caution); font-weight: 700; }
+.guide-picker { display: flex; flex-direction: column; gap: 4px; }
+.guide-picker summary { cursor: pointer; font-weight: 700; }
+.guide-picker li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0 8px 16px; border-bottom: 1px solid var(--border); }
 
 /* History */
 .card-table { padding: 8px 0; gap: 0; }

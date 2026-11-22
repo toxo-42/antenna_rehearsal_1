@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AssistBoxes } from './AssistBoxes.tsx'
 import { StageChip } from './Badges.tsx'
 import { stageTone } from './labels.ts'
 import type { Card, Diagnosis } from './types.ts'
@@ -7,7 +8,7 @@ import type { Card, Diagnosis } from './types.ts'
  * The verdict card. Every sentence and number is the server's string, shown as it is.
  * Order: headline -> diagnoses (title, action, evidence, guide) -> status.
  */
-export function VerdictCard({ card }: { card: Card }) {
+export function VerdictCard({ card, measurementId }: { card: Card; measurementId: number }) {
   return (
     <section className={`card verdict tone-border-${stageTone(card.stage)}`} aria-label="판정 카드">
       <div className="verdict-headline">
@@ -25,8 +26,7 @@ export function VerdictCard({ card }: { card: Card }) {
           </ul>
         </div>
       )}
-      <ExplainBox />
-      <AskBox />
+      <AssistBoxes measurementId={measurementId} />
     </section>
   )
 }
@@ -77,36 +77,3 @@ function Pager({ index, count, onMove }: { index: number; count: number; onMove:
   )
 }
 
-/** Place for the plain-language explanation. It is connected in P5 and stays disabled until then. */
-function ExplainBox() {
-  return (
-    <div className="ask">
-      <button type="button" disabled>
-        쉬운 말로 설명 듣기
-      </button>
-      <p className="ask-answer">
-        <span className="ai-tag">AI 설명(참고용)</span> 풀어 쓴 글은 이 표시와 함께 여기에 나옵니다
-      </p>
-    </div>
-  )
-}
-
-/** Place for the question box. It is connected in P5 and stays disabled until then. */
-function AskBox() {
-  return (
-    <div className="ask">
-      <h3>
-        <label htmlFor="ask-input">질문하기</label>
-      </h3>
-      <div className="ask-row">
-        <input id="ask-input" type="text" placeholder="아직 연결되지 않았습니다" disabled />
-        <button type="button" disabled>
-          질문하기
-        </button>
-      </div>
-      <p className="ask-answer">
-        <span className="ai-tag">AI가 고른 설명</span> 답은 이 표시와 함께 여기에 나옵니다
-      </p>
-    </div>
-  )
-}
