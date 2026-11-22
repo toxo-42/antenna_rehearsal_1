@@ -1,5 +1,6 @@
 """Build the verdict card: stage, headline, status lines, and diagnoses. All text comes from code."""
 
+import math
 from collections.abc import Callable
 from itertools import pairwise
 
@@ -73,7 +74,7 @@ def _impedance_line(ctx: RuleContext) -> str | None:
     if selected is None:
         return None
     impedance = impedance_at(ctx.sweep, selected.index)
-    if impedance is None:
+    if impedance is None or not all(map(math.isfinite, (impedance.r_ohm, impedance.x_ohm))):
         return None
     return f"공진점 R {impedance.r_ohm:.2f} Ω, X {impedance.x_ohm:+.2f} Ω"
 

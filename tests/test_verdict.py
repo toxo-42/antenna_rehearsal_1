@@ -116,6 +116,22 @@ def test_magnitude_only_status_has_no_impedance_line() -> None:
     assert lines_with(card, "측정 간격") == ["측정 간격 10.00 MHz"]
 
 
+@pytest.mark.parametrize("dip_db", [-20.0, -8.0])
+def test_reflection_of_exactly_one_has_no_impedance_line_or_inf_text(dip_db: float) -> None:
+    gamma = (0.5 + 0j,) * 3 + (1 + 0j,) + (0.5 + 0j,) * 3
+    sweep = Sweep(
+        f_mhz=tuple(420.0 + 5 * i for i in range(7)),
+        s11_db=(-1.0, -2.0, -4.0, dip_db, -4.0, -2.0, -1.0),
+        gamma=gamma,
+    )
+
+    card = build_card(sweep, antenna(435.0), CalMode.VNA)
+    texts = [*card.status, *(t for d in card.diagnoses for t in (d.evidence, d.action))]
+
+    assert lines_with(card, "공진점 R") == []
+    assert [t for t in texts if "inf" in t or "nan" in t] == []
+
+
 def test_status_shows_the_calibration_state() -> None:
     vna = lines_with(sample_card("good", CalMode.VNA), "교정")
     unknown = lines_with(sample_card("good", CalMode.UNKNOWN), "교정")

@@ -1,6 +1,6 @@
 import pytest
 
-from src.sweep_parser import parse_sweep_csv
+from src.sweep_parser import check_sweep, parse_sweep_csv
 
 BASIC = "Frequency_Hz,S11_dB\n100000000,-1.0\n200000000,-12.5\n300000000,-2.0\n"
 
@@ -66,6 +66,38 @@ def test_only_one_complex_column_means_no_complex() -> None:
 def test_rejects_bad_input_with_korean_message(text: str, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         parse_sweep_csv(text)
+
+
+COMPLEX_HEADER = "Frequency_Hz,S11_dB,S11_real,S11_imag\n"
+
+
+@pytest.mark.parametrize(
+    ("row", "column"),
+    [
+        ("0,-2,0,0", "Frequency_Hz"),
+        ("-1e8,-2,0,0", "Frequency_Hz"),
+        ("0.999,-2,0,0", "Frequency_Hz"),
+        ("1.000001e12,-2,0,0", "Frequency_Hz"),
+        ("2e8,1000.001,0,0", "S11_dB"),
+        ("2e8,-1000.001,0,0", "S11_dB"),
+        ("2e8,-2,1000.001,0", "S11_real"),
+        ("2e8,-2,0,-1000.001", "S11_imag"),
+    ],
+)
+def test_rejects_values_outside_the_measurable_range(row: str, column: str) -> None:
+    text = COMPLEX_HEADER + f"1e8,-1,0,0\n{row}\n3e8,-3,0,0\n"
+
+    with pytest.raises(ValueError, match=f"3행: {column} .*범위"):
+        parse_sweep_csv(text)
+
+
+def test_accepts_values_on_the_range_limits() -> None:
+    text = COMPLEX_HEADER + "1,1000,1000,-1000\n2,-1000,-1000,1000\n1e12,0,0,0\n"
+
+    sweep = parse_sweep_csv(text)
+
+    assert (sweep.f_mhz[0], sweep.f_mhz[-1]) == (1e-6, 1e6)
+    check_sweep(sweep)  # the service runs both; a parsed sweep must pass the shared check
 
 
 @pytest.mark.parametrize("newline", ["\r\n", "\r"])

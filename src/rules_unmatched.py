@@ -1,5 +1,7 @@
 """Rules for a resonance that is too shallow to count as matched (stage `unmatched`)."""
 
+import math
+
 from src.impedance import impedance_at, reactance_at
 from src.models import AntennaKind, Diagnosis, Impedance, RuleContext, Stage
 from src.rule_tools import LENGTH_CAUTION, LENGTHEN, SHORTEN, finding, length_name, target_text
@@ -33,6 +35,9 @@ def _impedance(ctx: RuleContext) -> Impedance | None:
 
 
 def _r_text(impedance: Impedance) -> str:
+    """R is infinite only when the reflection coefficient is exactly 1 (an open)."""
+    if math.isinf(impedance.r_ohm):
+        return "공진점 R 무한대"
     return f"공진점 R {impedance.r_ohm:.2f} Ω"
 
 
