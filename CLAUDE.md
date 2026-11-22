@@ -14,11 +14,12 @@
 
 # 도구
 - Python은 `uv`만 쓴다 (`uv add`, `uv run pytest`). 전역 pip 금지. `requirements.txt`는 기본으로 만들지 않는다. 요청받으면 `uv export --format requirements.txt --no-hashes --no-emit-project -o requirements.txt`로 생성
-- 의존성: fastapi, uvicorn, pyserial, python-multipart / 개발: pytest, httpx. 이 밖의 것은 물어보고 추가
+- 의존성: fastapi, uvicorn, pyserial, python-multipart / 개발: pytest, httpx, ruff. 이 밖의 것은 물어보고 추가
 - macOS와 Windows에서 모두 실행되어야 한다. `pathlib` 사용
 
 # 작업 방식
 - 요청한 것만 만든다. 테스트를 먼저 쓰고, 실행 결과를 보여 준 뒤 완료라고 한다
 - 오류를 숨기거나 기대값을 바꿔 통과시키지 않는다
+- 파일을 만들거나 고칠 때는 Edit/Write 도구를 쓴다. 셸의 `cat >`이나 스크립트로 소스 파일을 쓰지 않는다 (포맷·크기 검사 훅이 그 경로에서만 동작한다)
 - 사용자에게 보이는 글은 한국어, 코드와 식별자는 영어
 - 커밋은 Conventional Commits 접두어 + 한국어 설명

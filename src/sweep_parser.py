@@ -2,6 +2,7 @@
 
 import csv
 import io
+import itertools
 import math
 from collections.abc import Iterator
 
@@ -83,7 +84,7 @@ def _number(row: list[str], line: int, name: str, index: int) -> float:
 def _check_points(rows: list[tuple[int, list[float]]]) -> None:
     if len(rows) < MIN_POINTS:
         raise ValueError(f"측정점이 {MIN_POINTS}점 이상 필요합니다 (현재 {len(rows)}점).")
-    for (_, previous), (line, current) in zip(rows, rows[1:]):
+    for (_, previous), (line, current) in itertools.pairwise(rows):
         if current[0] <= previous[0]:
             raise ValueError(
                 f"{line}행: 주파수가 오름차순이 아닙니다. 낮은 주파수부터 적어 주세요."

@@ -16,6 +16,8 @@
 | GET | `/api/measurements?antenna_id&stage&limit&offset` (sweep 제외) |
 | GET | `/api/measurements/{id}` (`contract/measurement.json` 형태) |
 
+유한하지 않은 수(공진점 R이 무한대인 경우 등)는 JSON으로 내보낼 때 `null`로 바꾼다. 이 경우의 테스트를 둔다.
+
 값 목록: `kind`는 `monopole | patch`, `cal_mode`는 `vna | unknown`. 이 밖의 값은 422.
 
 오류: 잘못된 입력 422, 없는 id 404, 한국어 메시지. 목표가 스윕 범위 밖이면 422.
