@@ -137,6 +137,9 @@ def get_measurement(db_path: Path, measurement_id: int) -> Row:
             "cal_mode": row["cal_mode"],
             "measured_at": row["measured_at"],
             "change_note": row["change_note"],
+            "resonance_mhz": row["resonance_mhz"],
+            "s11_db": row["s11_db"],
+            "bandwidth_pct": row["bandwidth_pct"],
             "sweep": [
                 {"f_mhz": f_mhz, "s11_db": s11_db}
                 for f_mhz, s11_db in zip(sweep.f_mhz, sweep.s11_db, strict=True)

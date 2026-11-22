@@ -10,13 +10,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import create_app
-from src.models import Antenna, CalMode
+from src.classify import classify
+from src.models import Antenna, CalMode, Sweep
 from src.sources import StoredSource
 from src.synthetic import SAMPLE_NAMES, make_sample
 from src.verdict import build_card
 
 CONTRACT = Path(__file__).resolve().parent.parent / "contract" / "measurement.json"
 UPLOAD = "/api/measurements/upload"
+RESONANCE_KEYS = ("resonance_mhz", "s11_db", "bandwidth_pct")
 
 
 @pytest.fixture
@@ -54,6 +56,14 @@ def upload(client: TestClient, antenna_id: int, data: bytes) -> Any:
 
 def card_dict(card: object) -> Any:
     return json.loads(json.dumps(asdict(card), ensure_ascii=False))  # type: ignore[call-overload]
+
+
+def core_resonance(sweep: Sweep, antenna: Antenna) -> dict[str, float | None]:
+    """The three resonance numbers the judging core picks, independent of the API."""
+    selected = classify(sweep, antenna).selected
+    if selected is None:
+        return dict.fromkeys(RESONANCE_KEYS)
+    return dict(zip(RESONANCE_KEYS, (selected.f_mhz, selected.s11_db, selected.bandwidth_pct)))
 
 
 def card_strings(card: dict[str, Any]) -> list[str]:
@@ -113,10 +123,16 @@ def test_stored_card_matches_the_core_and_the_stored_sweep(
     direct = card_dict(build_card(sample.sweep, antenna, CalMode.VNA))
     reread = card_dict(build_card(StoredSource(db, got["id"]).read(), antenna, CalMode.VNA))
 
+    row = client.get(f"/api/measurements?antenna_id={antenna_id}").json()[0]
+    contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+    core = core_resonance(sample.sweep, antenna)
+    contract.update({key: None for key, value in core.items() if value is None})
+
+    assert {key: got[key] for key in RESONANCE_KEYS} == {key: row[key] for key in RESONANCE_KEYS}
     assert got == created.json()
     assert got["card"] == direct
     assert reread == direct
-    assert_same_shape(json.loads(CONTRACT.read_text(encoding="utf-8")), got)
+    assert_same_shape(contract, got)
     assert got["source"] == "synthetic"
     assert len(got["sweep"]) == len(sample.sweep.f_mhz)
     assert non_finite_words(got["card"]) == []
@@ -140,15 +156,19 @@ def test_measurement_has_server_time_and_stored_columns(client: TestClient) -> N
     assert row["resonance_mhz"] == pytest.approx(381.25, abs=0.005)
     assert row["bandwidth_pct"] == pytest.approx(13.89, abs=0.005)
     assert "sweep_json" not in row and "card_json" not in row
+    assert {key: got[key] for key in RESONANCE_KEYS} == {key: row[key] for key in RESONANCE_KEYS}
 
 
 def test_no_selected_resonance_stores_nulls(client: TestClient) -> None:
     antenna_id = add_antenna(client)
-    measure(client, antenna_id, "open")
+    created = measure(client, antenna_id, "open").json()
 
     row = client.get("/api/measurements").json()[0]
+    got = client.get(f"/api/measurements/{row['id']}").json()
 
     assert (row["resonance_mhz"], row["s11_db"], row["bandwidth_pct"]) == (None, None, None)
+    assert [got[key] for key in RESONANCE_KEYS] == [created[key] for key in RESONANCE_KEYS]
+    assert [got[key] for key in RESONANCE_KEYS] == [None, None, None]
 
 
 def test_list_filters_orders_and_pages(client: TestClient) -> None:
