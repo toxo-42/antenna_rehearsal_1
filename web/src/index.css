@@ -133,6 +133,10 @@ th { font-size: 13px; color: var(--muted); }
 .chart-target { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 3 3; }
 .chart-target-label { font-size: 12px; font-weight: 700; fill: var(--accent); }
 .chart-curve { fill: none; stroke: var(--text); stroke-width: 2; stroke-linejoin: round; }
+.chart-curve-before { stroke: var(--muted); stroke-dasharray: 6 4; }
+.chart-marker-synthetic { fill: var(--synthetic-bg); stroke: var(--synthetic); stroke-width: 2; }
+.legend-synthetic { color: var(--synthetic); font-weight: 700; }
+.compare-verdict { font-size: 20px; color: var(--text); }
 .chart-marker { fill: var(--caution); stroke: var(--surface); stroke-width: 2; }
 .chart-marker-label { font-size: 12px; font-weight: 700; fill: var(--caution); }
 .chart-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; color: var(--muted); }

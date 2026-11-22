@@ -71,6 +71,14 @@ export function antennaText(antenna: { kind: Kind; target_mhz: number }): string
   return `${KIND_LABEL[antenna.kind]} · 목표 ${antenna.target_mhz} MHz`
 }
 
+/** "+49.50 MHz" for a change; "—" when the server sent none. Zero has no sign. */
+export function signedText(value: number | null, unit: string): string {
+  if (value === null) return '—'
+  const text = Math.abs(value).toFixed(2)
+  const sign = text === '0.00' ? '' : value > 0 ? '+' : '-'
+  return `${sign}${text} ${unit}`
+}
+
 /** The server's ISO local time with a space instead of the `T`. */
 export function timeText(measuredAt: string): string {
   return measuredAt.replace('T', ' ')

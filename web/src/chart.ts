@@ -115,7 +115,7 @@ export function freqTicks(scale: ChartScale): number[] {
 }
 
 /** Decimal places that keep neighbouring frequency ticks distinct: 0 for steps of 1 MHz or more. */
-function freqDecimals(scale: ChartScale): number {
+export function freqDecimals(scale: ChartScale): number {
   const step = (scale.fMax - scale.fMin) / 4
   if (!(step > 0) || step >= 1) return 0
   // With d decimals one unit is 10^-d <= step, so rounded neighbours never collide.

@@ -18,7 +18,7 @@ export function SampleCard({ antennaId, measure }: SourceProps) {
   const start = () =>
     antennaId !== null &&
     sample !== null &&
-    measure.run(() => measureSample(antennaId, sample, measure.calMode))
+    measure.run(() => measureSample(antennaId, sample, measure.calMode, measure.changeNote))
   return (
     <section className="card">
       <h2>
@@ -61,7 +61,9 @@ function SampleList(props: { samples: Sample[]; chosen: string | null; onChoose:
 export function CsvCard({ antennaId, measure }: SourceProps) {
   const [file, setFile] = useState<File | null>(null)
   const start = () =>
-    antennaId !== null && file !== null && measure.run(() => uploadCsv(antennaId, file, measure.calMode))
+    antennaId !== null &&
+    file !== null &&
+    measure.run(() => uploadCsv(antennaId, file, measure.calMode, measure.changeNote))
   return (
     <section className="card">
       <h2>

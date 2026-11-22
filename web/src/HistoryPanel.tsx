@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { describeError, getMeasurement, listMeasurements } from './api.ts'
+import { HISTORY_LIMIT, describeError, getMeasurement, listMeasurements } from './api.ts'
 import type { ErrorInfo } from './api.ts'
 import { EmptyNotice, ErrorNotice, LoadingNotice, SourceBadge, StageChip } from './Badges.tsx'
+import { ComparePanel } from './ComparePanel.tsx'
 import { antennaText, timeText } from './labels.ts'
 import { latestOnly } from './latest.ts'
-import type { Measurement, MeasurementRow } from './types.ts'
+import { TrendChart } from './TrendChart.tsx'
+import { isTruncated } from './trend.ts'
+import type { Antenna, Measurement, MeasurementRow } from './types.ts'
 import type { useAntennas } from './useAppState.ts'
 import { useLoad } from './useLoad.ts'
 import { VerdictCard } from './VerdictCard.tsx'
@@ -14,6 +17,7 @@ type OnOpen = (measurement: Measurement) => void
 /** Screen 3: the measurements of one antenna, and the card of the one that is clicked. */
 export function HistoryPanel(props: { antennas: ReturnType<typeof useAntennas>; onOpen: OnOpen }) {
   const { antennas, antennaId, select } = props.antennas
+  const antenna = antennas.find((item) => item.id === antennaId) ?? null
   return (
     <div className="page">
       <header className="page-head page-head-row">
@@ -28,10 +32,10 @@ export function HistoryPanel(props: { antennas: ReturnType<typeof useAntennas>; 
           </select>
         )}
       </header>
-      {antennaId === null ? (
+      {antenna === null ? (
         <EmptyNotice>등록된 안테나가 없습니다. ① 측정에서 먼저 추가해 주세요.</EmptyNotice>
       ) : (
-        <HistoryList key={antennaId} antennaId={antennaId} onOpen={props.onOpen} />
+        <HistoryList key={antenna.id} antenna={antenna} onOpen={props.onOpen} />
       )}
     </div>
   )
@@ -39,8 +43,8 @@ export function HistoryPanel(props: { antennas: ReturnType<typeof useAntennas>; 
 
 type Picked = { id: number; measurement: Measurement | null; error: ErrorInfo | null }
 
-function HistoryList({ antennaId, onOpen }: { antennaId: number; onOpen: OnOpen }) {
-  const [rows, reload] = useLoad(() => listMeasurements(antennaId), antennaId)
+function HistoryList({ antenna, onOpen }: { antenna: Antenna; onOpen: OnOpen }) {
+  const [rows, reload] = useLoad(() => listMeasurements(antenna.id), antenna.id)
   const [picked, setPicked] = useState<Picked | null>(null)
   const [latest] = useState(latestOnly)
 
@@ -61,12 +65,22 @@ function HistoryList({ antennaId, onOpen }: { antennaId: number; onOpen: OnOpen 
     return <EmptyNotice>이 안테나의 측정이 아직 없습니다. ① 측정에서 시작해 주세요.</EmptyNotice>
   }
   return (
-    <div className="columns">
-      <HistoryTable rows={rows.data} selectedId={picked?.id ?? null} onPick={open} />
-      <div className="column column-narrow">
-        <PickedCard picked={picked} onOpen={onOpen} />
+    <>
+      <section className="card">
+        <h2>측정 순서별 공진 주파수</h2>
+        {isTruncated(rows.data.length) && (
+          <p className="muted">최근 {HISTORY_LIMIT}건만 보여 줍니다.</p>
+        )}
+        <TrendChart rows={rows.data} targetMhz={antenna.target_mhz} />
+      </section>
+      <ComparePanel rows={rows.data} />
+      <div className="columns">
+        <HistoryTable rows={rows.data} selectedId={picked?.id ?? null} onPick={open} />
+        <div className="column column-narrow">
+          <PickedCard picked={picked} onOpen={onOpen} />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -80,6 +94,7 @@ function HistoryTable(props: { rows: MeasurementRow[]; selectedId: number | null
             <th scope="col">출처</th>
             <th scope="col">단계</th>
             <th scope="col">공진 주파수</th>
+            <th scope="col">바꾼 것</th>
           </tr>
         </thead>
         <tbody>
@@ -93,6 +108,7 @@ function HistoryTable(props: { rows: MeasurementRow[]; selectedId: number | null
               <td><SourceBadge source={row.source} /></td>
               <td><StageChip stage={row.stage} /></td>
               <td>{row.resonance_mhz === null ? '—' : `${row.resonance_mhz.toFixed(2)} MHz`}</td>
+              <td>{row.change_note || '—'}</td>
             </tr>
           ))}
         </tbody>

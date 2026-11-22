@@ -74,6 +74,27 @@ export interface MeasurementRow {
   change_note: string
 }
 
+/** `GET /api/compare`. Every number is after minus before; all are null when not comparable. */
+export interface Comparison {
+  before_id: number
+  after_id: number
+  target_mhz: number
+  /** Coarser sweep spacing around the two resonances; null when a resonance is missing. */
+  step_mhz: number | null
+  comparable: boolean
+  verdict: string
+  reasons: string[]
+  shift_mhz: number | null
+  distance_before_mhz: number | null
+  distance_after_mhz: number | null
+  distance_change_mhz: number | null
+  s11_change_db: number | null
+  bandwidth_change_pct: number | null
+  stage: { before: Stage; after: Stage }
+  change_note: string
+  summary: string
+}
+
 /** `GET /api/health`. `ollama`: questions are linked by a model. `explain`: show the button. */
 export interface Health {
   mode: string

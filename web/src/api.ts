@@ -6,6 +6,7 @@ import type {
   AntennaInput,
   AskAnswer,
   CalMode,
+  Comparison,
   Explanation,
   GuideTopic,
   Health,
@@ -113,9 +114,16 @@ export function measureSample(
   antennaId: number,
   sample: string,
   calMode: CalMode,
+  changeNote: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<Measurement> {
-  const body = { antenna_id: antennaId, source: 'synthetic', sample, cal_mode: calMode }
+  const body = {
+    antenna_id: antennaId,
+    source: 'synthetic',
+    sample,
+    cal_mode: calMode,
+    change_note: changeNote,
+  }
   return request('/api/measurements', postJson(body), fetchFn)
 }
 
@@ -134,6 +142,7 @@ export function measureUsb(
   antennaId: number,
   range: UsbRange,
   calMode: CalMode,
+  changeNote: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<Measurement> {
   const body = {
@@ -144,6 +153,7 @@ export function measureUsb(
     stop_mhz: range.stopMhz,
     points: range.points,
     cal_mode: calMode,
+    change_note: changeNote,
   }
   return request('/api/measurements', postJson(body), fetchFn)
 }
@@ -152,12 +162,14 @@ export function uploadCsv(
   antennaId: number,
   file: File,
   calMode: CalMode,
+  changeNote: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<Measurement> {
   const form = new FormData()
   form.append('file', file)
   form.append('antenna_id', String(antennaId))
   form.append('cal_mode', calMode)
+  form.append('change_note', changeNote)
   return request('/api/measurements/upload', { method: 'POST', body: form }, fetchFn)
 }
 
@@ -170,6 +182,15 @@ export function listMeasurements(
 
 export function getMeasurement(id: number, fetchFn: typeof fetch = fetch): Promise<Measurement> {
   return request(`/api/measurements/${id}`, undefined, fetchFn)
+}
+
+/** Before/after of two measurements of one antenna. The verdict comes from the server. */
+export function compareMeasurements(
+  beforeId: number,
+  afterId: number,
+  fetchFn: typeof fetch = fetch,
+): Promise<Comparison> {
+  return request(`/api/compare?before=${beforeId}&after=${afterId}`, undefined, fetchFn)
 }
 
 export function getHealth(fetchFn: typeof fetch = fetch): Promise<Health> {

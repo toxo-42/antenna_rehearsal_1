@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, StrictFloat, StrictInt
 from starlette.exceptions import HTTPException
 
-from src import assist, saa2, service
+from src import assist, compare, saa2, service
 
 router = APIRouter(prefix="/api")
 
@@ -153,6 +153,11 @@ def list_measurements(
 ) -> list[dict[str, Any]]:
     query = service.ListInput(antenna_id, stage, limit, offset)
     return service.list_measurements(_db(request), query)
+
+
+@router.get("/compare")
+def compare_measurements(request: Request, before: int, after: int) -> dict[str, Any]:
+    return compare.compare_measurements(_db(request), before, after)
 
 
 @router.get("/measurements/{measurement_id}")

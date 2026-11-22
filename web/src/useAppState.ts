@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import { describeError, listAntennas } from './api.ts'
 import type { ErrorInfo } from './api.ts'
+import { EMPTY_NOTE, changeNoteText } from './changeNote.ts'
+import type { NoteChoice } from './changeNote.ts'
 import { DEFAULT_CAL_MODE } from './labels.ts'
 import type { Antenna, CalMode, Measurement } from './types.ts'
 import { useLoad } from './useLoad.ts'
@@ -29,6 +31,7 @@ export type MeasureState = ReturnType<typeof useMeasure>
  */
 export function useMeasure(onMeasured: (measurement: Measurement) => void) {
   const [calMode, setCalMode] = useState<CalMode>(DEFAULT_CAL_MODE)
+  const [note, setNote] = useState<NoteChoice>(EMPTY_NOTE)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ErrorInfo | null>(null)
 
@@ -37,11 +40,12 @@ export function useMeasure(onMeasured: (measurement: Measurement) => void) {
     setError(null)
     try {
       onMeasured(await measure())
+      setNote(EMPTY_NOTE) // a note belongs to one measurement; the next one starts empty
     } catch (failure) {
       setError(describeError(failure))
     } finally {
       setBusy(false)
     }
   }
-  return { calMode, setCalMode, busy, error, run }
+  return { calMode, setCalMode, note, setNote, changeNote: changeNoteText(note), busy, error, run }
 }

@@ -4,6 +4,7 @@ import {
   DEFAULT_CAL_MODE,
   calModeLabel,
   kindLabel,
+  signedText,
   sourceLabel,
   sourceSymbol,
   stageLabel,
@@ -85,4 +86,13 @@ test('each source badge has its own symbol', () => {
 
 test('calibration starts as "not confirmed" so the student has to choose', () => {
   assert.equal(DEFAULT_CAL_MODE, 'unknown')
+})
+
+test('a change is shown with its sign, and a missing one as a dash', () => {
+  assert.equal(signedText(49.5, 'MHz'), '+49.50 MHz')
+  assert.equal(signedText(-0.4979, 'dB'), '-0.50 dB')
+  assert.equal(signedText(0, '%p'), '0.00 %p')
+  assert.equal(signedText(-0.001, 'dB'), '0.00 dB')
+  assert.equal(signedText(0.001, 'dB'), '0.00 dB')
+  assert.equal(signedText(null, 'MHz'), '—')
 })

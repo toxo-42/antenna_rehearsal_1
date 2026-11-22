@@ -4,6 +4,7 @@ import {
   ApiError,
   HISTORY_LIMIT,
   SERVER_DOWN_MESSAGE,
+  compareMeasurements,
   createAntenna,
   describeError,
   askQuestion,
@@ -148,7 +149,7 @@ test('reads go to the right paths, and history asks for the largest page', async
 
 test('a synthetic measurement posts the exact body the API expects', async () => {
   const { sent, fetchFn } = recorder()
-  await measureSample(3, 'open', 'unknown', fetchFn)
+  await measureSample(3, 'open', 'unknown', '도체 줄임 5 mm', fetchFn)
   assert.equal(sent[0].path, '/api/measurements')
   assert.equal(sent[0].init?.method, 'POST')
   assert.deepEqual(JSON.parse(String(sent[0].init?.body)), {
@@ -156,12 +157,13 @@ test('a synthetic measurement posts the exact body the API expects', async () =>
     source: 'synthetic',
     sample: 'open',
     cal_mode: 'unknown',
+    change_note: '도체 줄임 5 mm',
   })
 })
 
 test('a USB measurement posts the port and range the API expects', async () => {
   const { sent, fetchFn } = recorder()
-  await measureUsb(3, { port: '/dev/cu.usbmodem1', startMhz: 2000, stopMhz: 3000, points: 201 }, 'vna', fetchFn)
+  await measureUsb(3, { port: '/dev/cu.usbmodem1', startMhz: 2000, stopMhz: 3000, points: 201 }, 'vna', '', fetchFn)
   assert.equal(sent[0].path, '/api/measurements')
   assert.equal(sent[0].init?.method, 'POST')
   assert.deepEqual(JSON.parse(String(sent[0].init?.body)), {
@@ -172,6 +174,7 @@ test('a USB measurement posts the port and range the API expects', async () => {
     stop_mhz: 3000,
     points: 201,
     cal_mode: 'vna',
+    change_note: '',
   })
 })
 
@@ -193,10 +196,10 @@ test('adding an antenna posts name, kind and target_mhz', async () => {
   })
 })
 
-test('a CSV upload sends the file, antenna_id and cal_mode as multipart', async () => {
+test('a CSV upload sends the file, antenna_id, cal_mode and change_note as multipart', async () => {
   const { sent, fetchFn } = recorder()
   const file = new File(['f_mhz,s11_db\n'], 'sweep.csv', { type: 'text/csv' })
-  await uploadCsv(4, file, 'vna', fetchFn)
+  await uploadCsv(4, file, 'vna', '납땜 변경', fetchFn)
   assert.equal(sent[0].path, '/api/measurements/upload')
   assert.equal(sent[0].init?.method, 'POST')
   const form = sent[0].init?.body
@@ -204,6 +207,14 @@ test('a CSV upload sends the file, antenna_id and cal_mode as multipart', async 
   assert.equal((form.get('file') as File).name, 'sweep.csv')
   assert.equal(form.get('antenna_id'), '4')
   assert.equal(form.get('cal_mode'), 'vna')
+  assert.equal(form.get('change_note'), '납땜 변경')
+})
+
+test('a comparison asks for before and after by id', async () => {
+  const { sent, fetchFn } = recorder()
+  await compareMeasurements(3, 8, fetchFn)
+  assert.equal(sent[0].path, '/api/compare?before=3&after=8')
+  assert.equal(sent[0].init, undefined)
 })
 
 test('health and the guide list are plain reads', async () => {

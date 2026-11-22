@@ -1,4 +1,5 @@
 import { AntennaForm } from './AntennaForm.tsx'
+import { ChangeNoteCard } from './ChangeNoteCard.tsx'
 import { EmptyNotice, ErrorNotice } from './Badges.tsx'
 import { antennaText, calModeLabel } from './labels.ts'
 import { CsvCard, SampleCard } from './MeasureSources.tsx'
@@ -32,6 +33,7 @@ export function MeasurePanel({ antennas, measure }: { antennas: Antennas; measur
         <div className="column column-narrow">
           <AntennaCard antennas={antennas} />
           <CalModeCard measure={measure} />
+          <ChangeNoteCard measure={measure} />
         </div>
         <div className="column">
           <SampleCard antennaId={antennas.antennaId} measure={measure} />
