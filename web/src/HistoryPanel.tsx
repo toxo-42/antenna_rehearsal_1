@@ -5,6 +5,7 @@ import { EmptyNotice, ErrorNotice, LoadingNotice, SourceBadge, StageChip } from 
 import { ComparePanel } from './ComparePanel.tsx'
 import { antennaText, timeText } from './labels.ts'
 import { latestOnly } from './latest.ts'
+import type { EmptyTexts } from './mode.ts'
 import { TrendChart } from './TrendChart.tsx'
 import { isTruncated } from './trend.ts'
 import type { Antenna, Measurement, MeasurementRow } from './types.ts'
@@ -15,7 +16,9 @@ import { VerdictCard } from './VerdictCard.tsx'
 type OnOpen = (measurement: Measurement) => void
 
 /** Screen 3: the measurements of one antenna, and the card of the one that is clicked. */
-export function HistoryPanel(props: { antennas: ReturnType<typeof useAntennas>; onOpen: OnOpen }) {
+type PanelProps = { antennas: ReturnType<typeof useAntennas>; onOpen: OnOpen; empty: EmptyTexts }
+
+export function HistoryPanel(props: PanelProps) {
   const { antennas, antennaId, select } = props.antennas
   const antenna = antennas.find((item) => item.id === antennaId) ?? null
   return (
@@ -33,9 +36,9 @@ export function HistoryPanel(props: { antennas: ReturnType<typeof useAntennas>; 
         )}
       </header>
       {antenna === null ? (
-        <EmptyNotice>등록된 안테나가 없습니다. ① 측정에서 먼저 추가해 주세요.</EmptyNotice>
+        <EmptyNotice>{props.empty.antennas}</EmptyNotice>
       ) : (
-        <HistoryList key={antenna.id} antenna={antenna} onOpen={props.onOpen} />
+        <HistoryList key={antenna.id} antenna={antenna} onOpen={props.onOpen} emptyText={props.empty.measurements} />
       )}
     </div>
   )
@@ -43,7 +46,9 @@ export function HistoryPanel(props: { antennas: ReturnType<typeof useAntennas>; 
 
 type Picked = { id: number; measurement: Measurement | null; error: ErrorInfo | null }
 
-function HistoryList({ antenna, onOpen }: { antenna: Antenna; onOpen: OnOpen }) {
+type ListProps = { antenna: Antenna; onOpen: OnOpen; emptyText: string }
+
+function HistoryList({ antenna, onOpen, emptyText }: ListProps) {
   const [rows, reload] = useLoad(() => listMeasurements(antenna.id), antenna.id)
   const [picked, setPicked] = useState<Picked | null>(null)
   const [latest] = useState(latestOnly)
@@ -62,7 +67,7 @@ function HistoryList({ antenna, onOpen }: { antenna: Antenna; onOpen: OnOpen }) 
   if (rows.status === 'loading') return <LoadingNotice />
   if (rows.status === 'error') return <ErrorNotice error={rows.error} onRetry={reload} />
   if (rows.data.length === 0) {
-    return <EmptyNotice>이 안테나의 측정이 아직 없습니다. ① 측정에서 시작해 주세요.</EmptyNotice>
+    return <EmptyNotice>{emptyText}</EmptyNotice>
   }
   return (
     <>

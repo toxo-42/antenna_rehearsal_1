@@ -1,20 +1,25 @@
 import { useState } from 'react'
+import { getHealth } from './api.ts'
 import { ErrorNotice, LoadingNotice } from './Badges.tsx'
 import { CardPage } from './CardPage.tsx'
 import { HistoryPanel } from './HistoryPanel.tsx'
 import { MeasurePanel } from './MeasurePanel.tsx'
+import { screenFor } from './mode.ts'
+import type { Screen } from './mode.ts'
 import type { Measurement } from './types.ts'
 import { useAntennas, useMeasure } from './useAppState.ts'
+import { useLoad } from './useLoad.ts'
 
 const TABS = [
   { id: 'measure', label: '① 측정' },
   { id: 'card', label: '② 판정 카드' },
   { id: 'history', label: '③ 이력' },
 ] as const
-type Tab = (typeof TABS)[number]['id']
+type TabItem = (typeof TABS)[number]
+type Tab = TabItem['id']
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('measure')
+  const [chosen, setTab] = useState<Tab>('measure')
   const [current, setCurrent] = useState<Measurement | null>(null)
   const antennas = useAntennas()
   const show = (measurement: Measurement) => {
@@ -22,32 +27,52 @@ export default function App() {
     setTab('card')
   }
   const measure = useMeasure(show)
-  const { loaded } = antennas
+  const [health, reloadHealth] = useLoad(getHealth, 'health')
+  // The mode decides tabs, badge and empty texts; see mode.ts and its tests.
+  const screen = screenFor(TABS, chosen, health.status === 'ready' ? health.data : null)
+  const { tab } = screen
+  // No panel before the mode is known, so demo mode never opens the measure tab (and its USB
+  // port list). A failed mode answer is shown as an error, not guessed as local.
+  const loaded = health.status === 'ready' ? antennas.loaded : health
+  const retry = () => {
+    reloadHealth()
+    antennas.reload()
+  }
 
   return (
     <>
-      <TopBar tab={tab} locked={measure.busy} onTab={setTab} />
+      <TopBar screen={screen} locked={measure.busy} onTab={setTab} />
       <main>
         {loaded.status === 'loading' && <LoadingNotice />}
-        {loaded.status === 'error' && <ErrorNotice error={loaded.error} onRetry={antennas.reload} />}
+        {loaded.status === 'error' && <ErrorNotice error={loaded.error} onRetry={retry} />}
         {loaded.status === 'ready' && tab === 'measure' && (
           <MeasurePanel antennas={antennas} measure={measure} />
         )}
-        {loaded.status === 'ready' && tab === 'card' && <CardPage measurement={current} />}
+        {loaded.status === 'ready' && tab === 'card' && (
+          <CardPage measurement={current} emptyText={screen.empty.card} />
+        )}
         {loaded.status === 'ready' && tab === 'history' && (
-          <HistoryPanel antennas={antennas} onOpen={show} />
+          <HistoryPanel antennas={antennas} onOpen={show} empty={screen.empty} />
         )}
       </main>
     </>
   )
 }
 
-function TopBar({ tab, locked, onTab }: { tab: Tab; locked: boolean; onTab: (tab: Tab) => void }) {
+type TopBarProps = { screen: Screen<TabItem>; locked: boolean; onTab: (tab: Tab) => void }
+
+function TopBar({ screen, locked, onTab }: TopBarProps) {
+  const { tab, badge, tabs } = screen
   return (
     <header className="topbar">
       <strong className="app-name">안테나 S11 도우미</strong>
+      {badge !== null && (
+        <span className="badge badge-demo" title="저장된 측정만 볼 수 있습니다. 측정·저장·AI 설명은 꺼져 있습니다.">
+          {badge}
+        </span>
+      )}
       <nav aria-label="화면">
-        {TABS.map((item) => (
+        {tabs.map((item) => (
           <button
             key={item.id}
             type="button"

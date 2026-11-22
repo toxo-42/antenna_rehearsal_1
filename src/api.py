@@ -4,7 +4,7 @@ import threading
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import APIRouter, FastAPI, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
@@ -22,6 +22,10 @@ ERROR_STATUS: dict[type[Exception], int] = {
     service.BusyError: 409,
     service.DeviceError: 503,
 }
+DEMO_REFUSAL = (
+    "시연 모드에서는 저장된 측정만 볼 수 있습니다. "
+    "안테나 추가, 측정 저장, 파일 업로드, USB 장비는 쓸 수 없습니다."
+)
 
 
 class AntennaBody(BaseModel):
@@ -46,9 +50,13 @@ class QuestionBody(BaseModel):
     question: str
 
 
-def install(app: FastAPI, db_path: Path, parts: assist.LlmParts) -> None:
-    """Attach the routes and the Korean error responses to an app that uses `db_path`."""
+def install(app: FastAPI, db_path: Path, parts: assist.LlmParts, read_only: bool = False) -> None:
+    """Attach the routes and the Korean error responses to an app that uses `db_path`.
+
+    `read_only` (demo mode) answers every write and every USB route with 403.
+    """
     app.state.db_path = db_path
+    app.state.read_only = read_only
     app.state.llm = parts
     app.state.serial_opener = saa2.open_serial
     app.state.usb_lock = threading.Lock()
@@ -65,6 +73,15 @@ def _db(request: Request) -> Path:
 
 def _llm(request: Request) -> assist.LlmParts:
     return request.app.state.llm
+
+
+def _writable(request: Request) -> None:
+    """Runs before the route, so a refused request never reaches the database or a port."""
+    if request.app.state.read_only:
+        raise HTTPException(status_code=403, detail=DEMO_REFUSAL)
+
+
+WRITABLE = [Depends(_writable)]
 
 
 def status_for(exc: Exception) -> int:
@@ -96,7 +113,7 @@ def list_antennas(request: Request) -> list[dict[str, Any]]:
     return service.list_antennas(_db(request))
 
 
-@router.post("/antennas")
+@router.post("/antennas", dependencies=WRITABLE)
 def create_antenna(request: Request, body: AntennaBody) -> dict[str, Any]:
     data = service.AntennaInput(name=body.name, kind=body.kind, target_mhz=body.target_mhz)
     return service.create_antenna(_db(request), data)
@@ -107,19 +124,19 @@ def list_samples() -> list[dict[str, Any]]:
     return service.list_samples()
 
 
-@router.get("/ports")
+@router.get("/ports", dependencies=WRITABLE)
 def list_ports() -> list[str]:
     return saa2.list_ports()
 
 
-@router.get("/device/screen")
+@router.get("/device/screen", dependencies=WRITABLE)
 def device_screen(request: Request, port: str | None = None) -> Response:
     state = request.app.state
     png = service.device_screen(port, state.serial_opener, state.usb_lock)
     return Response(content=png, media_type="image/png")
 
 
-@router.post("/measurements")
+@router.post("/measurements", dependencies=WRITABLE)
 def create_measurement(request: Request, body: MeasurementBody) -> dict[str, Any]:
     measure = service.MeasureInput(body.antenna_id, body.cal_mode, body.change_note)
     if body.source == "usb":
@@ -130,7 +147,7 @@ def create_measurement(request: Request, body: MeasurementBody) -> dict[str, Any
     return service.measure(_db(request), synthetic, measure)
 
 
-@router.post("/measurements/upload")
+@router.post("/measurements/upload", dependencies=WRITABLE)
 def upload_measurement(
     request: Request,
     file: Annotated[UploadFile, File()],

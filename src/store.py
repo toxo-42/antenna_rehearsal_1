@@ -142,6 +142,15 @@ def list_measurements(conn: sqlite3.Connection, query: MeasurementQuery) -> list
     return [dict(row) for row in rows]
 
 
+def count_measurements(db_path: Path) -> int:
+    """0 when the file has no measurements table (e.g. an empty file). Creates nothing."""
+    with connect(db_path) as conn:
+        sql = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'measurements'"
+        if conn.execute(sql).fetchone() is None:
+            return 0
+        return conn.execute("SELECT COUNT(*) FROM measurements").fetchone()[0]
+
+
 def sweep_to_json(sweep: Sweep) -> str:
     """`[f_hz, s11_db, re, im]` per point; re and im are null without complex data."""
     gamma = sweep.gamma or (None,) * len(sweep.f_mhz)

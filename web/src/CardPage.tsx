@@ -5,10 +5,9 @@ import type { Measurement } from './types.ts'
 import { VerdictCard } from './VerdictCard.tsx'
 
 /** Screen 2: the graph and the verdict card of one measurement. */
-export function CardPage({ measurement }: { measurement: Measurement | null }) {
-  if (measurement === null) {
-    return <EmptyNotice>아직 측정이 없습니다. ① 측정에서 시작하거나 ③ 이력에서 골라 주세요.</EmptyNotice>
-  }
+export function CardPage(props: { measurement: Measurement | null; emptyText: string }) {
+  const { measurement } = props
+  if (measurement === null) return <EmptyNotice>{props.emptyText}</EmptyNotice>
   return (
     <div className="page">
       <header className="page-head page-head-row">

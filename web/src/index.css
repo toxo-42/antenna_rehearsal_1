@@ -74,6 +74,7 @@ button.link { padding: 0; border: 0; background: none; color: var(--accent); fon
 .badge-usb { background: var(--text); border-color: var(--text); color: var(--on-accent); }
 .badge-csv { background: var(--surface); border-color: var(--text); color: var(--text); }
 .badge-synthetic { background: var(--synthetic-bg); border-color: var(--synthetic); border-style: dashed; color: var(--synthetic); }
+.badge-demo { align-self: center; background: var(--caution-bg); border-color: var(--caution); color: var(--caution); }
 .badge-stored { background: var(--neutral-bg); border-color: var(--muted); color: var(--muted); }
 .tone-good { background: var(--good-bg); border-color: var(--good); color: var(--good); }
 .tone-caution { background: var(--caution-bg); border-color: var(--caution); color: var(--caution); }
