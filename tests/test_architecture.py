@@ -18,6 +18,10 @@ def source_files() -> list[Path]:
     return [ROOT / "app.py", *sorted((ROOT / "src").glob("*.py"))]
 
 
+def py_files_of_tests() -> list[Path]:
+    return sorted((ROOT / "tests").glob("*.py"))
+
+
 def src_files() -> list[Path]:
     return sorted((ROOT / "src").glob("*.py"))
 
@@ -101,7 +105,8 @@ def find_cycle(graph: dict[str, set[str]]) -> list[str]:
 
 
 def test_files_are_at_most_300_lines() -> None:
-    counts = {p: line_count(p) for p in source_files()}
+    """Test files count too: the project rule says "파일 300줄" without an exception."""
+    counts = {p: line_count(p) for p in [*source_files(), *py_files_of_tests()]}
     too_long = [f"{p.relative_to(ROOT)}: {n}" for p, n in counts.items() if n > MAX_FILE_LINES]
     assert too_long == []
 

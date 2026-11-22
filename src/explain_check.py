@@ -73,9 +73,9 @@ def section(text: str, title: str) -> str:
 
 def forbidden_words(card: Card) -> tuple[str, ...]:
     """Words the "지금 해 볼 것" section may not use, from the directions in the card's actions.
-    A word the actions already contain is allowed: copying "자르지 말고 덧붙여서" is faithful."""
+    The card's own warning "자르지 말고 덧붙여서" still passes when copied: it carries a negation."""
     actions = " ".join(d.action for d in card.diagnoses)
-    return tuple(word for word in _direction_words(actions) if word not in actions)
+    return _direction_words(actions)
 
 
 def _direction_words(actions: str) -> tuple[str, ...]:

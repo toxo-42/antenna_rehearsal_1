@@ -3,7 +3,7 @@
 
 import type { AskStatus, ExplainStatus } from './types.ts'
 
-export const EXPLAIN_LABEL = 'AI 설명 (참고용). 결론과 수치는 위 카드가 기준입니다'
+export const EXPLAIN_LABEL = 'AI 설명(참고용). 결론과 수치는 위 카드가 기준입니다'
 export const ASK_NOT_IN_CARD = '이번 측정에서는 나타나지 않은 항목입니다'
 
 export type Block =

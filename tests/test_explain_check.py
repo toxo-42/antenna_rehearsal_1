@@ -188,11 +188,22 @@ def test_a_lengthen_card_rejects_shortening_or_cutting() -> None:
     assert status("1. 도체를 자르세요.") == "rejected"
 
 
-def test_words_already_in_the_card_actions_are_not_forbidden() -> None:
+def test_the_warning_of_the_card_passes_when_copied() -> None:
     copied = "1. 도체를 약 11 % 늘리세요. 자르지 말고 덧붙여서 확인합니다."
 
     assert review(text(todo=copied), LENGTHEN_CARD, ANTENNA).status == "ok"
     assert review(text(todo="1. 도체를 줄이세요."), LENGTHEN_CARD, ANTENNA).status == "rejected"
+
+
+def test_a_cut_warning_in_the_card_does_not_allow_telling_to_cut() -> None:
+    """The lengthen card says "자르지 말고": copying that passes, the opposite advice does not."""
+    assert review(text(todo="1. 도체를 자르세요."), LENGTHEN_CARD, ANTENNA).status == "rejected"
+    sample = make_sample("offtarget_high")
+    card = build_card(sample.sweep, sample.antenna, CalMode.VNA)
+
+    assert review(text(todo="1. 도체를 자르세요."), card, sample.antenna).status == "rejected"
+    kept = "1. 도체를 자르지 말고 덧붙여서 확인합니다."
+    assert review(text(todo=kept), card, sample.antenna).status == "ok"
 
 
 @pytest.mark.parametrize("name", ["offtarget_high", "far_low"])

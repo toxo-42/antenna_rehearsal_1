@@ -38,7 +38,7 @@ test('a list keeps its first number, and blank lines split lists', () => {
 })
 
 test('the label says the card is the authority', () => {
-  assert.equal(EXPLAIN_LABEL, 'AI 설명 (참고용). 결론과 수치는 위 카드가 기준입니다')
+  assert.equal(EXPLAIN_LABEL, 'AI 설명(참고용). 결론과 수치는 위 카드가 기준입니다')
 })
 
 test('warnings list the numbers the card does not have', () => {

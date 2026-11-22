@@ -37,7 +37,8 @@ def create_app(
     db_path = db_path or (DEMO_DB if demo else DEFAULT_DB)
     if demo:
         _check_demo_db(db_path)
-    app = FastAPI(title="Antenna S11 Helper")
+    # The built-in /docs and /redoc pages load their scripts from the internet: off.
+    app = FastAPI(title="Antenna S11 Helper", docs_url=None, redoc_url=None)
     llm = parts if parts is not None else assist.parts_from_env(os.environ)
     if demo:
         llm = assist.LlmParts(NoExplainer(), NoRouter())
@@ -64,4 +65,9 @@ def _check_demo_db(db_path: Path) -> None:
         raise ValueError(f"시연용 DB에 측정이 없습니다: {db_path}. {hint}")
 
 
-app = create_app_from_env(os.environ)
+def __getattr__(name: str) -> FastAPI:
+    """`uvicorn app:app` asks for `app` here. Building it on request, not at import, keeps
+    `from app import create_app` (tests, scripts) away from the real database."""
+    if name == "app":
+        return create_app_from_env(os.environ)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

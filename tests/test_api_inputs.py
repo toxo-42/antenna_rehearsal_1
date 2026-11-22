@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from app import create_app
 from src import service
 from src.models import Sweep
-from tests.test_api import add_antenna
+from tests.test_api import UPLOAD, add_antenna, measure
 
 HANGUL = re.compile("[가-힣]")
 HUGE = 2**70
@@ -112,3 +112,36 @@ def test_service_rejects_a_source_value_outside_the_list(client: TestClient, db:
         service.measure(db, OddSource(), request)
 
     assert client.get("/api/measurements").json() == []
+
+
+def test_unknown_ids_are_404(client: TestClient) -> None:
+    assert measure(client, 999, "good").status_code == 404
+    assert client.get("/api/measurements/999").status_code == 404
+    form = {"antenna_id": "999", "cal_mode": "vna", "change_note": ""}
+    files = {"file": ("s.csv", b"Frequency_Hz,S11_dB\n1,1\n2,2\n3,3\n", "text/csv")}
+    response = client.post(UPLOAD, files=files, data=form)
+    assert response.status_code == 404
+    assert any("가" <= ch <= "힣" for ch in response.json()["detail"])
+
+
+@pytest.mark.parametrize("target", [5.0, 1500.0])
+def test_target_outside_the_sweep_is_422(client: TestClient, target: float) -> None:
+    response = measure(client, add_antenna(client, target=target), "good")
+
+    assert response.status_code == 422
+    assert "목표" in response.json()["detail"]
+    assert client.get("/api/measurements").json() == []
+
+
+@pytest.mark.parametrize("query", ["stage=bad", "limit=0", "limit=201", "offset=-1", "limit=x"])
+def test_bad_list_query_is_422(client: TestClient, query: str) -> None:
+    assert client.get(f"/api/measurements?{query}").status_code == 422
+
+
+def test_list_limit_defaults_to_50_and_allows_200(client: TestClient) -> None:
+    antenna_id = add_antenna(client)
+    for _ in range(51):
+        measure(client, antenna_id, "open")
+
+    assert len(client.get("/api/measurements").json()) == 50
+    assert len(client.get("/api/measurements?limit=200").json()) == 51
