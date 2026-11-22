@@ -1,0 +1,106 @@
+"""Shared value types and thresholds for the verdict core. No logic beyond simple derived values."""
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+from src.tolerance import at_least, at_most
+
+MATCH_THRESHOLD_DB = -10.0
+RESONANCE_MIN_DEPTH_DB = 3.0
+RESONANCE_MAX_S11_DB = -6.0
+WEAK_DIP_MIN_DEPTH_DB = 2.0
+CANDIDATE_WINDOW_PCT = 20.0
+REFERENCE_OHM = 50.0
+LOW_FREQ_FRACTION = 0.1
+
+
+class AntennaKind(StrEnum):
+    MONOPOLE = "monopole"
+    PATCH = "patch"
+
+
+class Stage(StrEnum):
+    NONE = "none"
+    UNMATCHED = "unmatched"
+    OFFTARGET = "offtarget"
+    NARROW = "narrow"
+    GOOD = "good"
+
+
+TYPICAL_BANDWIDTH_PCT: dict[AntennaKind, float] = {
+    AntennaKind.MONOPOLE: 8.0,
+    AntennaKind.PATCH: 2.5,
+}
+
+
+@dataclass(frozen=True)
+class Antenna:
+    name: str
+    kind: AntennaKind
+    target_mhz: float
+
+
+@dataclass(frozen=True)
+class Sweep:
+    """One S11 sweep. `gamma` is the complex reflection coefficient when the source has it."""
+
+    f_mhz: tuple[float, ...]
+    s11_db: tuple[float, ...]
+    gamma: tuple[complex, ...] | None = None
+
+
+@dataclass(frozen=True)
+class Band:
+    low_mhz: float
+    high_mhz: float
+
+    @property
+    def width_mhz(self) -> float:
+        return self.high_mhz - self.low_mhz
+
+    def contains(self, f_mhz: float) -> bool:
+        return at_least(f_mhz, self.low_mhz) and at_most(f_mhz, self.high_mhz)
+
+
+@dataclass(frozen=True)
+class Dip:
+    """A local minimum of S11 with its depth (prominence)."""
+
+    index: int
+    f_mhz: float
+    s11_db: float
+    depth_db: float
+
+
+@dataclass(frozen=True)
+class Resonance(Dip):
+    band: Band | None = None
+
+    @property
+    def bandwidth_pct(self) -> float | None:
+        if self.band is None:
+            return None
+        return self.band.width_mhz / self.f_mhz * 100
+
+
+@dataclass(frozen=True)
+class ResonanceScan:
+    resonances: tuple[Resonance, ...]
+    weak_dips: tuple[Dip, ...]
+    minor_count: int
+
+
+@dataclass(frozen=True)
+class Impedance:
+    r_ohm: float
+    x_ohm: float
+
+
+@dataclass(frozen=True)
+class Classification:
+    """Stage verdict. `others` are the unselected resonances, nearest to the target first."""
+
+    stage: Stage
+    selected: Resonance | None
+    offset_pct: float | None
+    others: tuple[Resonance, ...]
