@@ -8,6 +8,7 @@ Figma에 데스크톱 1280px 화면 3개를 만들어 줘: ① 측정 ② 판정
 방금 만든 Figma 화면(링크: ____)을 `web/`에 React + TypeScript로 구현해 줘. 데이터는 `contract/measurement.json`을 먼저 쓰고, API가 준비되면 교체한다.
 - Vite 템플릿의 데모 화면과 자산(데모 스타일, `hero.png`, 로고 svg, `web/README.md`)은 지운다
 - S11 그래프는 SVG로 직접 그린다. 목표선, -10 dB 선, 공진 표시
+- 상태색은 카드의 `stage` 값으로만 정한다: `good`은 양호, `narrow`와 `offtarget`은 주의, `unmatched`·`none`·`invalid`는 문제. `invalid`는 "측정 오류"로 표시한다
 - 판정 카드는 서버가 준 문자열을 **그대로** 표시한다. 프론트에서 수치를 다시 계산하거나 문장을 만들지 않는다
 - 카드 아래에 "질문하기" 입력칸 자리를 둔다(P5에서 연결). 답에는 "AI가 고른 설명" 표시를 붙인다
 - 로딩, 빈 목록, 서버 꺼짐 상태를 각각 만든다

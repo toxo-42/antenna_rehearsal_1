@@ -24,6 +24,7 @@
 ```
 (`status`와 `headline` 문구는 p2에서 확정한다)
 
-5. `tests/test_architecture.py`: CLAUDE.md의 구조 규칙을 검사하는 테스트. `ast`로 `app.py`와 `src/*.py`를 읽어 ① 파일 300줄 이하 ② 함수 40줄 이하 ③ 인자 5개 이하(self 제외) ④ `src/`가 `app`을 import하지 않음 ⑤ `src/` 모듈 사이에 순환 import 없음 ⑥ `src/` 하위 폴더에 `.py` 파일 없음을 확인한다. `src/`가 비어 있으면 무조건 통과하므로, 검사기마다 임시 파일로 만든 위반 예시를 실제로 잡는지 확인하는 테스트도 둔다. 이후 단계에서 이 테스트의 한도를 늘리거나 예외를 추가하지 않는다
+5. `.claude/settings.json`: `{"model": "opus"}`만 넣는다. 이 폴더에서 여는 세션이 구현용 모델로 시작하게 하는 설정이고, 커밋에 포함한다
+6. `tests/test_architecture.py`: CLAUDE.md의 구조 규칙을 검사하는 테스트. `ast`로 `app.py`와 `src/*.py`를 읽어 ① 파일 300줄 이하 ② 함수 40줄 이하 ③ 인자 5개 이하(self 제외) ④ `src/`가 `app`을 import하지 않음 ⑤ `src/` 모듈 사이에 순환 import 없음 ⑥ `src/` 하위 폴더에 `.py` 파일 없음을 확인한다. `src/`가 비어 있으면 무조건 통과하므로, 검사기마다 임시 파일로 만든 위반 예시를 실제로 잡는지 확인하는 테스트도 둔다. 이후 단계에서 이 테스트의 한도를 늘리거나 예외를 추가하지 않는다
 
 통과 검사: `uv run pytest` 실행됨, `uv run ruff check .`와 `uv run ruff format --check .` 통과, `uv run uvicorn app:app` 후 `/api/health` 200, `npm --prefix web run build` 성공. 결과를 보여 주고 멈춰. 커밋은 검토 뒤에 한다.
