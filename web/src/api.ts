@@ -119,6 +119,35 @@ export function measureSample(
   return request('/api/measurements', postJson(body), fetchFn)
 }
 
+export interface UsbRange {
+  port: string
+  startMhz: number
+  stopMhz: number
+  points: number
+}
+
+export function listPorts(fetchFn: typeof fetch = fetch): Promise<string[]> {
+  return request('/api/ports', undefined, fetchFn)
+}
+
+export function measureUsb(
+  antennaId: number,
+  range: UsbRange,
+  calMode: CalMode,
+  fetchFn: typeof fetch = fetch,
+): Promise<Measurement> {
+  const body = {
+    antenna_id: antennaId,
+    source: 'usb',
+    port: range.port,
+    start_mhz: range.startMhz,
+    stop_mhz: range.stopMhz,
+    points: range.points,
+    cal_mode: calMode,
+  }
+  return request('/api/measurements', postJson(body), fetchFn)
+}
+
 export function uploadCsv(
   antennaId: number,
   file: File,

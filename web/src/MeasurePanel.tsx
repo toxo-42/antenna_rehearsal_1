@@ -3,6 +3,7 @@ import { EmptyNotice, ErrorNotice } from './Badges.tsx'
 import { antennaText, calModeLabel } from './labels.ts'
 import { CsvCard, SampleCard } from './MeasureSources.tsx'
 import { CAL_MODES } from './types.ts'
+import { UsbCard } from './UsbCard.tsx'
 import type { CalMode } from './types.ts'
 import type { MeasureState, useAntennas } from './useAppState.ts'
 
@@ -35,6 +36,10 @@ export function MeasurePanel({ antennas, measure }: { antennas: Antennas; measur
         <div className="column">
           <SampleCard antennaId={antennas.antennaId} measure={measure} />
           <CsvCard antennaId={antennas.antennaId} measure={measure} />
+          <UsbCard
+            antenna={antennas.antennas.find((item) => item.id === antennas.antennaId) ?? null}
+            measure={measure}
+          />
         </div>
       </div>
     </div>

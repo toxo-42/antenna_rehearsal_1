@@ -1,26 +1,28 @@
 """Measurement workflow: check input, judge a sweep with the core, store it, shape responses.
 
 Errors carry a Korean message for the student: InputError (422), NotFoundError (404),
-TooLargeError (413).
+TooLargeError (413), BusyError (409), DeviceError (503).
 """
 
 import json
 import math
-from dataclasses import asdict, dataclass
+import threading
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from src import store
+from src import saa2, saa2_screen, store
 from src.classify import classify
 from src.models import Antenna, AntennaKind, CalMode, CardStage, Sweep
 from src.sources import SOURCE_VALUES, SweepSource, SyntheticSource
-from src.sweep_parser import check_sweep, parse_sweep_csv
+from src.sweep_parser import HZ_PER_MHZ, check_sweep, parse_sweep_csv
 from src.synthetic import SAMPLE_NAMES, make_sample
 from src.verdict import build_card
 
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 MAX_LIMIT = 200
+UNCALIBRATED_SOURCES = ("usb",)  # SAA-2 USB values do not include the device calibration
 Row = dict[str, Any]
 
 
@@ -36,6 +38,14 @@ class TooLargeError(ValueError):
     """An upload over MAX_UPLOAD_BYTES (HTTP 413)."""
 
 
+class BusyError(RuntimeError):
+    """A USB measurement is already running (HTTP 409)."""
+
+
+class DeviceError(RuntimeError):
+    """The measuring device failed; nothing was saved (HTTP 503)."""
+
+
 @dataclass(frozen=True)
 class AntennaInput:
     name: str
@@ -48,6 +58,14 @@ class MeasureInput:
     antenna_id: int
     cal_mode: str
     change_note: str
+
+
+@dataclass(frozen=True)
+class UsbInput:
+    port: str | None
+    start_mhz: float | None
+    stop_mhz: float | None
+    points: int | None
 
 
 @dataclass(frozen=True)
@@ -81,11 +99,11 @@ def list_samples() -> list[Row]:
 
 
 def synthetic_source(source: str, sample: str | None) -> SweepSource:
-    """The source for `POST /api/measurements`. Only `synthetic` is accepted for now."""
+    """The synthetic source for `POST /api/measurements` (`usb` goes through `usb_source`)."""
     _check_choice("source", source, list(SOURCE_VALUES))
     if source != "synthetic":
         raise InputError(
-            f"source '{source}'는 여기서 받지 않습니다. 지금은 synthetic만 됩니다 "
+            f"source '{source}'는 여기서 받지 않습니다. synthetic과 usb만 됩니다 "
             "(CSV는 /api/measurements/upload로 올려 주세요)."
         )
     if sample is None:
@@ -94,6 +112,52 @@ def synthetic_source(source: str, sample: str | None) -> SweepSource:
         return SyntheticSource(sample)
     except KeyError:
         raise InputError(f"'{sample}'은(는) 없는 합성 샘플입니다.") from None
+
+
+def usb_source(data: UsbInput, opener: saa2.Opener) -> saa2.Saa2Source:
+    """Check a USB request before the device is touched."""
+    if data.port is None or not data.port.strip():
+        raise InputError("USB 포트(port)를 골라 주세요.")
+    if data.start_mhz is None or data.stop_mhz is None or data.points is None:
+        raise InputError("시작 MHz(start_mhz), 종료 MHz(stop_mhz), 점 개수(points)가 필요합니다.")
+    try:
+        sweep_range = saa2.make_range(data.start_mhz, data.stop_mhz, data.points)
+    except ValueError as error:
+        raise InputError(str(error)) from None
+    return saa2.Saa2Source(data.port, sweep_range, opener)
+
+
+def measure_usb(
+    db_path: Path, source: saa2.Saa2Source, request: MeasureInput, lock: threading.Lock
+) -> Row:
+    """Measure on the SAA-2 and save (as `cal_mode = unknown`, see `stored_cal_mode`). One
+    measurement at a time; a second one meanwhile is BusyError."""
+    antenna = _antenna_for(db_path, request)
+    axis = saa2.axis_hz(source.sweep_range)  # the points the device will measure, not the request
+    _check_target_in(axis[0] / HZ_PER_MHZ, axis[-1] / HZ_PER_MHZ, antenna)
+    if not lock.acquire(blocking=False):
+        raise BusyError("다른 USB 측정이 진행 중입니다. 끝난 뒤 다시 눌러 주세요.")
+    try:
+        sweep = source.read()
+    except saa2.DeviceError as error:
+        raise DeviceError(str(error)) from None
+    finally:
+        lock.release()
+    return _save(db_path, sweep, source.source, antenna, request)
+
+
+def device_screen(port: str | None, opener: saa2.Opener, lock: threading.Lock) -> bytes:
+    """The SAA-2 screen as PNG. Not while a USB measurement holds the port (BusyError)."""
+    if port is None or not port.strip():
+        raise InputError("USB 포트(port)를 골라 주세요.")
+    if not lock.acquire(blocking=False):
+        raise BusyError("USB 측정이 진행 중입니다. 끝난 뒤 다시 시도해 주세요.")
+    try:
+        return saa2_screen.capture_png(port, opener)
+    except saa2.DeviceError as error:
+        raise DeviceError(str(error)) from None
+    finally:
+        lock.release()
 
 
 def measure(db_path: Path, source: SweepSource, request: MeasureInput) -> Row:
@@ -161,6 +225,12 @@ def list_measurements(db_path: Path, query: ListInput) -> list[Row]:
         return json_safe(store.list_measurements(conn, store_query))
 
 
+def stored_cal_mode(source: str, cal_mode: str) -> str:
+    """The calibration saved with a measurement. Sources in UNCALIBRATED_SOURCES never carry the
+    device calibration, so they are `unknown` whatever was asked."""
+    return CalMode.UNKNOWN.value if source in UNCALIBRATED_SOURCES else cal_mode
+
+
 def json_safe(value: Any) -> Any:
     """Replace NaN and infinities with None at any depth, so responses never carry them."""
     if isinstance(value, float) and not math.isfinite(value):
@@ -186,8 +256,8 @@ def _antenna_for(db_path: Path, request: MeasureInput) -> Antenna:
     return Antenna(name=row["name"], kind=AntennaKind(row["kind"]), target_mhz=row["target_mhz"])
 
 
-def _check_target_in(sweep: Sweep, target_mhz: float) -> None:
-    low, high = sweep.f_mhz[0], sweep.f_mhz[-1]
+def _check_target_in(low: float, high: float, antenna: Antenna) -> None:
+    target_mhz = antenna.target_mhz
     if target_mhz < low or target_mhz > high:
         raise InputError(
             f"목표 {target_mhz:g} MHz가 측정 범위 {low:.2f}~{high:.2f} MHz 밖입니다. "
@@ -200,7 +270,7 @@ def _save(db_path: Path, sweep: Sweep, source: str, antenna: Antenna, request: M
         check_sweep(sweep)
     except ValueError as error:
         raise InputError(str(error)) from None
-    _check_target_in(sweep, antenna.target_mhz)
+    _check_target_in(sweep.f_mhz[0], sweep.f_mhz[-1], antenna)
     new = _new_measurement(sweep, source, antenna, request)
     with store.connect(db_path) as conn:
         measurement_id = store.insert_measurement(conn, new)
@@ -210,6 +280,7 @@ def _save(db_path: Path, sweep: Sweep, source: str, antenna: Antenna, request: M
 def _new_measurement(
     sweep: Sweep, source: str, antenna: Antenna, request: MeasureInput
 ) -> store.NewMeasurement:
+    request = replace(request, cal_mode=stored_cal_mode(source, request.cal_mode))
     card = build_card(sweep, antenna, CalMode(request.cal_mode))
     selected = classify(sweep, antenna).selected
     return store.NewMeasurement(

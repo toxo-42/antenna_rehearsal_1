@@ -1,16 +1,17 @@
 """HTTP routes. They only translate between HTTP and `service`; all rules live in `service`."""
 
+import threading
 from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, FastAPI, File, Form, Request, UploadFile
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, StrictFloat, StrictInt
 from starlette.exceptions import HTTPException
 
-from src import assist, service
+from src import assist, saa2, service
 
 router = APIRouter(prefix="/api")
 
@@ -18,6 +19,8 @@ ERROR_STATUS: dict[type[Exception], int] = {
     service.InputError: 422,
     service.NotFoundError: 404,
     service.TooLargeError: 413,
+    service.BusyError: 409,
+    service.DeviceError: 503,
 }
 
 
@@ -33,6 +36,10 @@ class MeasurementBody(BaseModel):
     sample: str | None = None
     cal_mode: str
     change_note: str = ""
+    port: str | None = None  # source = usb only, with the three below
+    start_mhz: StrictFloat | None = None
+    stop_mhz: StrictFloat | None = None
+    points: StrictInt | None = None
 
 
 class QuestionBody(BaseModel):
@@ -43,6 +50,8 @@ def install(app: FastAPI, db_path: Path, parts: assist.LlmParts) -> None:
     """Attach the routes and the Korean error responses to an app that uses `db_path`."""
     app.state.db_path = db_path
     app.state.llm = parts
+    app.state.serial_opener = saa2.open_serial
+    app.state.usb_lock = threading.Lock()
     app.include_router(router)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(HTTPException, _body_error)
@@ -98,11 +107,27 @@ def list_samples() -> list[dict[str, Any]]:
     return service.list_samples()
 
 
+@router.get("/ports")
+def list_ports() -> list[str]:
+    return saa2.list_ports()
+
+
+@router.get("/device/screen")
+def device_screen(request: Request, port: str | None = None) -> Response:
+    state = request.app.state
+    png = service.device_screen(port, state.serial_opener, state.usb_lock)
+    return Response(content=png, media_type="image/png")
+
+
 @router.post("/measurements")
 def create_measurement(request: Request, body: MeasurementBody) -> dict[str, Any]:
-    source = service.synthetic_source(body.source, body.sample)
     measure = service.MeasureInput(body.antenna_id, body.cal_mode, body.change_note)
-    return service.measure(_db(request), source, measure)
+    if body.source == "usb":
+        usb = service.UsbInput(body.port, body.start_mhz, body.stop_mhz, body.points)
+        source = service.usb_source(usb, request.app.state.serial_opener)
+        return service.measure_usb(_db(request), source, measure, request.app.state.usb_lock)
+    synthetic = service.synthetic_source(body.source, body.sample)
+    return service.measure(_db(request), synthetic, measure)
 
 
 @router.post("/measurements/upload")

@@ -13,8 +13,10 @@ import {
   listAntennas,
   listGuides,
   listMeasurements,
+  listPorts,
   listSamples,
   measureSample,
+  measureUsb,
   request,
   uploadCsv,
 } from './api.ts'
@@ -155,6 +157,28 @@ test('a synthetic measurement posts the exact body the API expects', async () =>
     sample: 'open',
     cal_mode: 'unknown',
   })
+})
+
+test('a USB measurement posts the port and range the API expects', async () => {
+  const { sent, fetchFn } = recorder()
+  await measureUsb(3, { port: '/dev/cu.usbmodem1', startMhz: 2000, stopMhz: 3000, points: 201 }, 'vna', fetchFn)
+  assert.equal(sent[0].path, '/api/measurements')
+  assert.equal(sent[0].init?.method, 'POST')
+  assert.deepEqual(JSON.parse(String(sent[0].init?.body)), {
+    antenna_id: 3,
+    source: 'usb',
+    port: '/dev/cu.usbmodem1',
+    start_mhz: 2000,
+    stop_mhz: 3000,
+    points: 201,
+    cal_mode: 'vna',
+  })
+})
+
+test('the port list is read from /api/ports', async () => {
+  const { sent, fetchFn } = recorder('["/dev/cu.usbmodem1"]')
+  assert.deepEqual(await listPorts(fetchFn), ['/dev/cu.usbmodem1'])
+  assert.equal(sent[0].path, '/api/ports')
 })
 
 test('adding an antenna posts name, kind and target_mhz', async () => {
