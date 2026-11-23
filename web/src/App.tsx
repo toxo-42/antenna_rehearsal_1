@@ -1,72 +1,61 @@
-import { useState } from 'react'
-import { getHealth } from './api.ts'
+import { AntennaSidebar } from './AntennaSidebar.tsx'
 import { ErrorNotice, LoadingNotice } from './Badges.tsx'
 import { CardPage } from './CardPage.tsx'
 import { HistoryPanel } from './HistoryPanel.tsx'
+import { ManagePanel } from './ManagePanel.tsx'
 import { MeasurePanel } from './MeasurePanel.tsx'
-import { screenFor } from './mode.ts'
 import type { Screen } from './mode.ts'
-import type { Measurement, Remeasure } from './types.ts'
+import type { Remeasure } from './types.ts'
 import { withRemeasure } from './usbRange.ts'
-import { useAntennas, useMeasure } from './useAppState.ts'
-import { useLoad } from './useLoad.ts'
-
-const TABS = [
-  { id: 'measure', label: '① 측정' },
-  { id: 'card', label: '② 판정 카드' },
-  { id: 'history', label: '③ 이력' },
-] as const
-type TabItem = (typeof TABS)[number]
-type Tab = TabItem['id']
+import { useShell } from './useShell.ts'
+import type { Shell, Tab, TabItem } from './useShell.ts'
 
 export default function App() {
-  const [chosen, setTab] = useState<Tab>('measure')
-  const [current, setCurrent] = useState<Measurement | null>(null)
-  const antennas = useAntennas()
-  const show = (measurement: Measurement) => {
-    setCurrent(measurement)
-    setTab('card')
-  }
-  const measure = useMeasure(show)
-  const [health, reloadHealth] = useLoad(getHealth, 'health')
-  // The mode decides tabs, badge and empty texts; see mode.ts and its tests.
-  const screen = screenFor(TABS, chosen, health.status === 'ready' ? health.data : null)
-  const { tab } = screen
-  // Demo mode has no measure tab, so the card shows the note without the button.
-  const canMeasure = screen.tabs.some((item) => item.id === 'measure')
-  const fillRange = (remeasure: Remeasure) => {
-    measure.setUsbRange((boxes) => withRemeasure(boxes, remeasure))
-    setTab('measure')
-  }
-  // No panel before the mode is known, so demo mode never opens the measure tab (and its USB
-  // port list). A failed mode answer is shown as an error, not guessed as local.
-  const loaded = health.status === 'ready' ? antennas.loaded : health
-  const retry = () => {
-    reloadHealth()
-    antennas.reload()
-  }
-
+  const shell = useShell()
+  const { loaded, antennas, measure } = shell
   return (
     <>
-      <TopBar screen={screen} locked={measure.busy} onTab={setTab} />
-      <main>
-        {loaded.status === 'loading' && <LoadingNotice />}
-        {loaded.status === 'error' && <ErrorNotice error={loaded.error} onRetry={retry} />}
-        {loaded.status === 'ready' && tab === 'measure' && (
-          <MeasurePanel antennas={antennas} measure={measure} />
-        )}
-        {loaded.status === 'ready' && tab === 'card' && (
-          <CardPage
-            measurement={current}
-            emptyText={screen.empty.card}
-            onRemeasure={canMeasure ? fillRange : undefined}
+      <TopBar screen={shell.screen} locked={measure.busy} onTab={shell.setTab} />
+      <div className="shell">
+        {loaded.status === 'ready' && (
+          <AntennaSidebar
+            antennas={antennas.antennas}
+            antennaId={antennas.antennaId}
+            onSelect={shell.select}
+            onAdded={shell.canMeasure ? antennas.add : undefined}
+            locked={measure.busy}
+            refreshKey={shell.summaryKey}
           />
         )}
-        {loaded.status === 'ready' && tab === 'history' && (
-          <HistoryPanel antennas={antennas} onOpen={show} empty={screen.empty} />
-        )}
-      </main>
+        <main>
+          {loaded.status === 'loading' && <LoadingNotice />}
+          {loaded.status === 'error' && <ErrorNotice error={loaded.error} onRetry={shell.retry} />}
+          {loaded.status === 'ready' && <Screens shell={shell} />}
+        </main>
+      </div>
     </>
+  )
+}
+
+/** The screen of the chosen tab. */
+function Screens({ shell }: { shell: Shell }) {
+  const { screen, measure, antenna, setTab } = shell
+  // The suggested range goes into the USB boxes. With a port known from an earlier USB
+  // measurement the student can measure again right on the card; otherwise the measure tab opens.
+  const fillRange = (remeasure: Remeasure) => {
+    measure.setUsbRange((boxes) => withRemeasure(boxes, remeasure))
+    if (measure.lastPort === null) setTab('measure')
+  }
+  const again = { measure, onRemeasure: fillRange, onGoMeasure: () => setTab('measure') }
+  if (screen.tab === 'measure') return <MeasurePanel antenna={antenna} measure={measure} />
+  if (screen.tab === 'history') return <HistoryPanel antenna={antenna} onOpen={shell.show} empty={screen.empty} />
+  if (screen.tab === 'manage') return <ManagePanel antennas={shell.antennas} onChanged={shell.managed} />
+  return (
+    <CardPage
+      measurement={shell.current}
+      emptyText={screen.empty.card}
+      again={shell.canMeasure ? again : undefined}
+    />
   )
 }
 

@@ -19,6 +19,14 @@ export interface Antenna {
   target_mhz: number
 }
 
+/** One row of `GET /api/antennas/overview`: the antenna plus what is stored for it. */
+export interface AntennaOverview extends Antenna {
+  measurement_count: number
+  last_measured_at: string | null
+  last_stage: Stage | null
+  last_resonance_mhz: number | null
+}
+
 /** One row of `GET /api/samples`. A hint only; the verdict uses the chosen antenna. */
 export interface Sample {
   name: string
@@ -148,6 +156,12 @@ export interface GuideItem {
 export interface GuideTopic {
   topic: string
   items: GuideItem[]
+}
+
+/** One row of `GET /api/criteria`: what a stage means, in the server's sentence. */
+export interface Criterion {
+  stage: Stage
+  text: string
 }
 
 export interface AntennaInput {

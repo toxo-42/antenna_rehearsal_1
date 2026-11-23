@@ -16,6 +16,14 @@ test('demo mode hides the measure tab and keeps the others in order', () => {
   assert.deepEqual(visibleTabs(TABS, false).map((tab) => tab.id), ['measure', 'card', 'history'])
 })
 
+test('demo mode also hides the manage tab, where everything is a write', () => {
+  const tabs = [...TABS, { id: 'manage' }] as const
+  assert.deepEqual(visibleTabs(tabs, true).map((tab) => tab.id), ['card', 'history'])
+  assert.deepEqual(visibleTabs(tabs, false).map((tab) => tab.id), ['measure', 'card', 'history', 'manage'])
+  assert.equal(shownTab('manage', true), 'history')
+  assert.equal(shownTab('manage', false), 'manage')
+})
+
 test('demo mode starts on the history tab instead of the hidden measure tab', () => {
   assert.equal(shownTab('measure', true), 'history')
   assert.equal(shownTab('card', true), 'card')
@@ -42,7 +50,9 @@ test('demo empty-state texts never send the student to the hidden measure tab', 
   const demo = Object.values(screenFor(TABS, 'card', health('demo')).empty)
   const local = Object.values(screenFor(TABS, 'card', health('local')).empty)
   assert.equal(demo.length, 3)
-  for (const text of demo) assert.doesNotMatch(text, /①|측정에서/)
-  assert.ok(demo.some((text) => text.includes('③ 이력')))
-  for (const text of local) assert.match(text, /① 측정에서/)
+  for (const text of demo) assert.doesNotMatch(text, /측정 화면|왼쪽에서/)
+  assert.ok(demo.some((text) => text.includes('이력에서')))
+  // Local texts point at the measure screen, or at the sidebar where antennas are added.
+  for (const text of local) assert.match(text, /측정 화면에서|왼쪽에서/)
+  for (const text of [...demo, ...local]) assert.doesNotMatch(text, /[①②③]/)
 })

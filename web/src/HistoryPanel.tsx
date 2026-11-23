@@ -9,30 +9,25 @@ import type { EmptyTexts } from './mode.ts'
 import { TrendChart } from './TrendChart.tsx'
 import { isTruncated } from './trend.ts'
 import type { Antenna, Measurement, MeasurementRow } from './types.ts'
-import type { useAntennas } from './useAppState.ts'
 import { useLoad } from './useLoad.ts'
 import { VerdictCard } from './VerdictCard.tsx'
 
 type OnOpen = (measurement: Measurement) => void
 
 /** Screen 3: the measurements of one antenna, and the card of the one that is clicked. */
-type PanelProps = { antennas: ReturnType<typeof useAntennas>; onOpen: OnOpen; empty: EmptyTexts }
+type PanelProps = { antenna: Antenna | null; onOpen: OnOpen; empty: EmptyTexts }
 
+/** The antenna is the one chosen in the sidebar. */
 export function HistoryPanel(props: PanelProps) {
-  const { antennas, antennaId, select } = props.antennas
-  const antenna = antennas.find((item) => item.id === antennaId) ?? null
+  const { antenna } = props
   return (
     <div className="page">
       <header className="page-head page-head-row">
         <h1>이력</h1>
-        {antennas.length > 0 && (
-          <select aria-label="안테나 선택" value={antennaId ?? ''} onChange={(event) => select(Number(event.target.value))}>
-            {antennas.map((antenna) => (
-              <option key={antenna.id} value={antenna.id}>
-                {antenna.name} · {antennaText(antenna)}
-              </option>
-            ))}
-          </select>
+        {antenna !== null && (
+          <span>
+            {antenna.name} · {antennaText(antenna)}
+          </span>
         )}
       </header>
       {antenna === null ? (
@@ -136,7 +131,12 @@ function PickedCard({ picked, onOpen }: { picked: Picked | null; onOpen: OnOpen 
           그래프와 함께 보기 →
         </button>
       </p>
-      <VerdictCard key={measurement.id} card={measurement.card} measurementId={measurement.id} />
+      <VerdictCard
+        key={measurement.id}
+        card={measurement.card}
+        kind={measurement.antenna.kind}
+        measurementId={measurement.id}
+      />
     </>
   )
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DEFAULT_USB_RANGE, choosePort, rangeWarning, withRemeasure } from './usbRange.ts'
+import { DEFAULT_USB_RANGE, choosePort, rangeText, rangeWarning, withRemeasure } from './usbRange.ts'
 
 test('the suggested range replaces start and stop and keeps the point count', () => {
   const filled = withRemeasure({ startMhz: 10, stopMhz: 3000, points: 401 }, { start_mhz: 498, stop_mhz: 748, note: '' })
@@ -41,6 +41,11 @@ test('a start above half the target warns', () => {
 
 test('the spec example 2000~3000 MHz for a 2450 MHz patch warns', () => {
   assert.notEqual(rangeWarning(2000, 3000, 2450), null)
+})
+
+test('the range reads as one short line next to the measure-again button', () => {
+  assert.equal(rangeText({ startMhz: 216, stopMhz: 650, points: 201 }), '216~650 MHz · 201점')
+  assert.equal(rangeText({ startMhz: 0.05, stopMhz: 3000, points: 1001 }), '0.05~3000 MHz · 1001점')
 })
 
 test('missing numbers give no warning', () => {

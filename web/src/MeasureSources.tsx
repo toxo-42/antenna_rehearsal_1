@@ -12,7 +12,7 @@ interface SourceProps {
 }
 
 /** Measure a synthetic sample. The sample's kind and target are a hint; the chosen antenna judges. */
-export function SampleCard({ antennaId, measure }: SourceProps) {
+export function SampleMeasure({ antennaId, measure }: SourceProps) {
   const [samples, reload] = useLoad(() => listSamples(), 'samples')
   const [sample, setSample] = useState<string | null>(null)
   const start = () =>
@@ -20,11 +20,11 @@ export function SampleCard({ antennaId, measure }: SourceProps) {
     sample !== null &&
     measure.run(() => measureSample(antennaId, sample, measure.calMode, measure.notes))
   return (
-    <section className="card">
-      <h2>
-        3-가. 합성 샘플로 측정 <SourceBadge source="synthetic" />
-      </h2>
-      <p className="muted">샘플의 종류와 목표 주파수는 참고용입니다. 판정은 위에서 선택한 안테나로 합니다.</p>
+    <section className="field-stack" aria-label="합성 샘플로 측정">
+      <p className="muted">
+        <SourceBadge source="synthetic" /> 장비 없이 앱을 연습하거나 확인할 때 쓰는 가짜 데이터입니다. 샘플의
+        종류와 목표 주파수는 참고용이고, 판정은 왼쪽에서 고른 안테나로 합니다.
+      </p>
       {samples.status === 'loading' && <LoadingNotice />}
       {samples.status === 'error' && <ErrorNotice error={samples.error} onRetry={reload} />}
       {samples.status === 'ready' && <SampleList samples={samples.data} chosen={sample} onChoose={setSample} />}
@@ -58,17 +58,14 @@ function SampleList(props: { samples: Sample[]; chosen: string | null; onChoose:
 }
 
 /** Measure an uploaded CSV file. */
-export function CsvCard({ antennaId, measure }: SourceProps) {
+export function CsvMeasure({ antennaId, measure }: SourceProps) {
   const [file, setFile] = useState<File | null>(null)
   const start = () =>
     antennaId !== null &&
     file !== null &&
     measure.run(() => uploadCsv(antennaId, file, measure.calMode, measure.notes))
   return (
-    <section className="card">
-      <h2>
-        3-나. CSV 파일로 측정 <SourceBadge source="csv" />
-      </h2>
+    <section className="field-stack" aria-label="CSV 파일로 측정">
       <label className="field file-field">
         CSV 파일 (UTF-8, 2 MB 이하)
         <input

@@ -35,10 +35,24 @@ small { display: block; font-size: 13px; color: var(--muted); }
 .muted-strong { color: var(--muted); font-weight: 700; }
 
 /* Layout */
-.topbar { display: flex; align-items: center; gap: 32px; height: 64px; padding: 0 32px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.topbar { display: flex; align-items: center; gap: 32px; height: 56px; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .app-name { font-size: 18px; }
 .topbar nav { display: flex; gap: 4px; }
-main { max-width: 1280px; margin: 0 auto; padding: 32px; }
+/* Designed for 1440x900: the antenna sidebar stays on the left, the screen fills the rest. */
+.shell { display: flex; align-items: stretch; min-height: calc(100vh - 56px); }
+main { flex: 1 1 0; min-width: 0; padding: 24px 32px; }
+
+/* Sidebar: which antenna every screen is about */
+.sidebar { flex: 0 0 280px; display: flex; flex-direction: column; gap: 16px; padding: 20px 16px; background: var(--surface); border-right: 1px solid var(--border); }
+.sidebar-title { padding: 0 8px; font-size: 13px; color: var(--muted); }
+.antenna-list { display: flex; flex-direction: column; gap: 4px; }
+button.antenna-item { display: block; width: 100%; padding: 10px 12px; border-color: transparent; background: none; color: var(--text); font-weight: 500; text-align: left; }
+button.antenna-item[aria-current='true'] { border-color: var(--accent); background: var(--bg); font-weight: 700; }
+button.button-dashed { align-self: stretch; border-style: dashed; border-color: var(--muted); background: none; color: var(--accent); }
+.summary { display: flex; flex-direction: column; gap: 8px; padding: 14px 12px; border-radius: 8px; background: var(--bg); font-size: 13px; }
+.summary > div { display: flex; justify-content: space-between; align-items: center; }
+.summary dt { color: var(--muted); }
+.summary-title { font-weight: 700; }
 .page, .column { display: flex; flex-direction: column; gap: 24px; }
 .page-head { display: flex; flex-direction: column; gap: 4px; color: var(--muted); }
 .page-head h1 { color: var(--text); }
@@ -61,6 +75,20 @@ button.link { padding: 0; border: 0; background: none; color: var(--accent); fon
 .field { display: flex; flex-direction: column; gap: 6px; flex: 1; font-size: 13px; font-weight: 500; color: var(--muted); }
 .field input, .field select, .page-head select, .ask input { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 15px; color: var(--text); }
 .field-row { display: flex; gap: 12px; }
+.field-row > .option { flex: 1; }
+.field-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.field-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.field input, .field select { width: 100%; min-width: 0; }
+.field-short { flex: none; width: 180px; }
+
+/* Measure form: one surface, a row per step (what it is on the left, controls on the right) */
+.form-rows { gap: 0; padding: 4px 28px; }
+.form-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; padding: 20px 0; border-top: 1px solid var(--border); }
+.form-row:first-child { border-top: 0; }
+.form-row h2 { font-size: 15px; }
+.segmented { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--neutral-bg); }
+.segmented button { padding: 6px 18px; border: 0; background: none; color: var(--muted); font-weight: 500; }
+.segmented button[aria-pressed='true'] { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 2px rgb(24 33 44 / 15%); }
 .file-field input { border-style: dashed; border-color: var(--muted); padding: 16px; }
 .subform { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 8px; background: var(--bg); }
 .subform h3 { color: var(--text); }
@@ -90,10 +118,25 @@ button.link { padding: 0; border: 0; background: none; color: var(--accent); fon
 .notice-title { display: block; margin-bottom: 4px; font-size: 18px; }
 .notice-error small { margin-top: 4px; color: var(--problem); font-weight: 400; }
 
+/* Verdict screen: the graph stands next to the card at the same height, the next measurement below */
+.verdict-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+.chart-card .chart { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chart-card .chart svg { flex: 1; min-height: 0; max-height: 620px; }
+.next-measure { padding: 16px 24px; }
+.next-measure-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 20px; align-items: start; }
+.next-measure-row h2 { font-size: 15px; }
+.next-measure-action { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 22px; }
+.next-measure-action button { align-self: flex-end; }
+
 /* Verdict card: the conclusion is the largest thing on the screen */
 .verdict { gap: 20px; }
 .verdict-headline { display: flex; flex-direction: column; gap: 8px; }
 .verdict-headline h2 { font-size: 28px; line-height: 1.35; }
+.verdict-state { display: flex; align-items: flex-start; gap: 12px; }
+.criteria { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13px; }
+.criteria-list { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.criteria-list > div { display: flex; flex-direction: column; gap: 4px; }
+.criteria-list dd { color: var(--text); }
 .verdict-diagnoses { display: flex; flex-direction: column; gap: 12px; }
 .diagnosis { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 8px; background: var(--bg); }
 .diagnosis dt { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
@@ -121,6 +164,10 @@ th, td { padding: 12px 24px; text-align: left; }
 th { font-size: 13px; color: var(--muted); }
 .row-selected { background: var(--bg); box-shadow: inset 4px 0 0 var(--accent); font-weight: 700; }
 .table-foot { padding: 12px 24px; font-size: 13px; }
+.table-title { padding: 12px 24px 4px; }
+.card-table .notice { margin: 8px 24px 16px; }
+.row-actions { display: flex; gap: 8px; align-items: center; }
+button.button-danger { border-color: var(--problem); background: var(--surface); color: var(--problem); }
 .meta { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .meta button { margin-left: auto; }
 

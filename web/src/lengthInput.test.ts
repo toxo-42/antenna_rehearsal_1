@@ -15,8 +15,8 @@ test('a number is sent as it is, and the server checks its range', () => {
   assert.equal(lengthNotice('11.5'), null)
 })
 
-test('text that is not a number is not sent, and the screen says so', () => {
+test('text that is not a number is not sent, and the screen only asks for a number', () => {
   assert.equal(lengthValue('12cm'), null)
   assert.equal(lengthValue('Infinity'), null)
-  assert.match(lengthNotice('12cm') ?? '', /길이 없이/)
+  assert.equal(lengthNotice('12cm'), '숫자만 입력해 주세요 (예: 12 또는 11.5).')
 })

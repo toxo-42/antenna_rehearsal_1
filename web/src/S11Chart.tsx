@@ -3,8 +3,9 @@ import type { ChartModel, PlotBox } from './chart.ts'
 import type { Measurement } from './types.ts'
 
 const WIDTH = 600
-const HEIGHT = 360
-const BOX: PlotBox = { left: 52, top: 14, width: 524, height: 290 }
+// Taller than wide enough to stand next to the verdict card at the same height.
+const HEIGHT = 480
+const BOX: PlotBox = { left: 52, top: 14, width: 524, height: 410 }
 const RIGHT = BOX.left + BOX.width
 const BOTTOM = BOX.top + BOX.height
 

@@ -26,8 +26,8 @@ HEADLINE_FOR_KEY: dict[str, str] = {
 }
 LENGTH_FIRST_HEADLINE = "공진이 목표 주파수에서 벗어나 있고 정합도 얕습니다"
 CAL_TEXT: dict[CalMode, str] = {
-    CalMode.VNA: "본체에서 교정함",
-    CalMode.UNKNOWN: "확인되지 않음",
+    CalMode.VNA: "VNA에서 교정함",
+    CalMode.UNKNOWN: "모름 / 안 함",
 }
 
 StatusLine = Callable[[RuleContext], str | None]

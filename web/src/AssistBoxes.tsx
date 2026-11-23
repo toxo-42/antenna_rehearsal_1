@@ -5,6 +5,7 @@ import type { ErrorInfo } from './api.ts'
 import { ErrorNotice, LoadingNotice } from './Badges.tsx'
 import {
   ASK_NOT_IN_CARD,
+  EXPLAIN_BUTTON,
   EXPLAIN_LABEL,
   askNotice,
   explainNotice,
@@ -57,7 +58,7 @@ function ExplainBox({ measurementId }: { measurementId: number }) {
         disabled={call.status === 'busy'}
         onClick={() => start(() => explainMeasurement(measurementId))}
       >
-        쉬운 말로 설명 듣기
+        {EXPLAIN_BUTTON}
       </button>
       {call.status === 'busy' && (
         <p className="ask-answer" role="status">

@@ -89,7 +89,7 @@ def make_range(start_mhz: float, stop_mhz: float, points: int) -> SweepRange:
         raise ValueError("시작 주파수가 종료 주파수보다 작아야 합니다.")
     # Checked in MHz before converting, so a huge finite value cannot overflow.
     if start_mhz < MIN_HZ / HZ_PER_MHZ or stop_mhz > MAX_HZ / HZ_PER_MHZ:
-        raise ValueError("SAA-2 측정 범위는 0.05~3000 MHz입니다. 범위를 그 안으로 정해 주세요.")
+        raise ValueError("VNA 측정 범위는 0.05~3000 MHz입니다. 범위를 그 안으로 정해 주세요.")
     if not MIN_POINTS <= points <= MAX_POINTS:
         raise ValueError(f"점 개수는 {MIN_POINTS}~{MAX_POINTS}개여야 합니다 (받은 값: {points}).")
     start_hz, stop_hz = round(start_mhz * HZ_PER_MHZ), round(stop_mhz * HZ_PER_MHZ)
@@ -148,7 +148,7 @@ def identify(port: SerialPort, clock: Clock) -> None:
     reply = read_until(port, 1, clock, clock.now() + IDENTIFY_S)
     if reply != DEVICE_ID:
         raise DeviceError(
-            f"SAA-2가 응답하지 않습니다 (받은 값: {reply!r}). 포트와 장비 전원을 확인해 주세요."
+            f"VNA가 응답하지 않습니다 (받은 값: {reply!r}). 포트와 장비 전원을 확인해 주세요."
         )
 
 

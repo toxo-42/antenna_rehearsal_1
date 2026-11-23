@@ -4,12 +4,15 @@
 import type {
   Antenna,
   AntennaInput,
+  AntennaOverview,
   AskAnswer,
   CalMode,
   Comparison,
+  Criterion,
   Explanation,
   GuideTopic,
   Health,
+  Kind,
   Measurement,
   MeasurementRow,
   Sample,
@@ -104,6 +107,23 @@ export function listAntennas(fetchFn: typeof fetch = fetch): Promise<Antenna[]> 
 
 export function createAntenna(input: AntennaInput, fetchFn: typeof fetch = fetch): Promise<Antenna> {
   return request('/api/antennas', postJson(input), fetchFn)
+}
+
+export function getOverview(fetchFn: typeof fetch = fetch): Promise<AntennaOverview[]> {
+  return request('/api/antennas/overview', undefined, fetchFn)
+}
+
+export function renameAntenna(id: number, name: string, fetchFn: typeof fetch = fetch): Promise<Antenna> {
+  const init = { ...postJson({ name }), method: 'PATCH' }
+  return request(`/api/antennas/${id}`, init, fetchFn)
+}
+
+export function deleteAntenna(id: number, fetchFn: typeof fetch = fetch): Promise<{ deleted_measurements: number }> {
+  return request(`/api/antennas/${id}`, { method: 'DELETE' }, fetchFn)
+}
+
+export function deleteMeasurement(id: number, fetchFn: typeof fetch = fetch): Promise<{ deleted: number }> {
+  return request(`/api/measurements/${id}`, { method: 'DELETE' }, fetchFn)
 }
 
 export function listSamples(fetchFn: typeof fetch = fetch): Promise<Sample[]> {
@@ -218,6 +238,10 @@ export function askQuestion(
   fetchFn: typeof fetch = fetch,
 ): Promise<AskAnswer> {
   return request(`/api/measurements/${id}/ask`, postJson({ question }), fetchFn)
+}
+
+export function listCriteria(kind: Kind, fetchFn: typeof fetch = fetch): Promise<Criterion[]> {
+  return request(`/api/criteria?kind=${kind}`, undefined, fetchFn)
 }
 
 export function listGuides(id: number, fetchFn: typeof fetch = fetch): Promise<GuideTopic[]> {

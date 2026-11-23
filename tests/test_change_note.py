@@ -12,7 +12,18 @@ WEB_LISTS = Path(__file__).resolve().parent.parent / "web" / "src" / "changeNote
 
 @pytest.mark.parametrize(
     "note",
-    ["도체 줄임 5 mm", "접지판 늘림 0.5 cm", "케이블 변경", "교정", "납땜 변경 10 %", "도체 2 mm"],
+    [
+        "도체 줄임 5 mm",
+        "접지판 늘림 0.5 cm",
+        "케이블 변경",
+        "교정",
+        "납땜 변경 10 %",
+        "도체 2 mm",
+        # The amount is typed, so any plain positive number is a note of the form.
+        "도체 줄임 7 mm",
+        "도체 줄임 8.25 mm",
+        "도체 늘림 1234 mm",
+    ],
 )
 def test_notes_built_from_the_select_boxes_are_recognized(note: str) -> None:
     assert change_note.is_structured(note)
@@ -27,7 +38,14 @@ def test_notes_built_from_the_select_boxes_are_recognized(note: str) -> None:
         "없음",
         "도체 줄임 5",
         "도체 줄임 mm",
-        "도체 줄임 7 mm",
+        "도체 줄임 0 mm",
+        "도체 줄임 0.0 mm",
+        "도체 줄임 -5 mm",
+        "도체 줄임 05 mm",
+        "도체 줄임 5.125 mm",
+        "도체 줄임 12345 mm",
+        "도체 줄임 1e3 mm",
+        "도체 줄임 조금 mm",
         "도체  줄임 5 mm",
         "도체 줄임 5 mm 더",
         "줄임 도체",
@@ -49,5 +67,11 @@ def ts_list(name: str) -> tuple[str, ...]:
 def test_python_lists_match_the_select_boxes() -> None:
     assert ts_list("PARTS") == change_note.PARTS
     assert ts_list("ACTIONS") == change_note.ACTIONS
-    assert ts_list("AMOUNTS") == change_note.AMOUNTS
     assert ts_list("UNITS") == change_note.UNITS
+
+
+def test_python_amount_pattern_matches_the_input_box() -> None:
+    text = WEB_LISTS.read_text(encoding="utf-8")
+    pattern = re.search(r"export const AMOUNT_PATTERN = /(.*)/\n", text)
+    assert pattern is not None
+    assert pattern.group(1) == change_note.AMOUNT_PATTERN.pattern

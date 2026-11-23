@@ -1,5 +1,6 @@
 /** SAA-2 USB measurement: range rule and the notices shown next to the measure button. */
 
+import { calModeLabel } from './labels.ts'
 import type { Remeasure } from './types.ts'
 
 /** What the three range boxes hold. */
@@ -16,14 +17,19 @@ export function withRemeasure(boxes: RangeBoxes, remeasure: Remeasure): RangeBox
   return { ...boxes, startMhz: remeasure.start_mhz, stopMhz: remeasure.stop_mhz }
 }
 
+/** "216~650 MHz · 201점": the range the measure-again button will use. */
+export function rangeText(boxes: RangeBoxes): string {
+  return `${boxes.startMhz}~${boxes.stopMhz} MHz · ${boxes.points}점`
+}
+
 export const START_FRACTION = 0.5
 export const STOP_FRACTION = 1.5
 
 export const USB_MODE_NOTICE =
-  '측정을 누르면 SAA-2 화면이 "USB MODE"로 바뀌고 장비 조작이 멈춥니다. 다시 쓰려면 전원을 껐다 켜 주세요.'
+  '측정을 누르면 VNA 화면이 "USB MODE"로 바뀌고 장비 조작이 멈춥니다. 다시 쓰려면 전원을 껐다 켜 주세요.'
 
 export const USB_CAL_NOTICE =
-  'USB로 받은 값에는 장비의 교정이 반영되지 않습니다. 위 교정 상태와 관계없이 unknown(교정 안 됨)으로 저장됩니다.'
+  `USB로 받은 값에는 VNA의 교정이 반영되지 않습니다. 위 Calibration 선택과 관계없이 "${calModeLabel('unknown')}"으로 저장됩니다.`
 
 /**
  * The port to measure with: the chosen one while it is still listed, otherwise the first listed

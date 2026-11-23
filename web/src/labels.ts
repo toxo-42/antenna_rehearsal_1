@@ -22,7 +22,7 @@ const TONE_SYMBOL: Record<Tone, string> = { good: '○', caution: '△', problem
 const INVALID_LABEL = '측정 오류'
 
 const SOURCE_LABEL: Record<Source, string> = {
-  usb: '실측',
+  usb: 'VNA 측정',
   csv: 'CSV',
   synthetic: '합성 데이터',
   // The original source of a stored sweep is unknown, so it is never called a live measurement.
@@ -34,8 +34,18 @@ const SOURCE_SYMBOL: Record<Source, string> = { usb: '●', csv: '▤', syntheti
 const KIND_LABEL: Record<Kind, string> = { monopole: '모노폴', patch: '패치' }
 
 const CAL_MODE_LABEL: Record<CalMode, string> = {
-  vna: '본체에서 교정함',
-  unknown: '확인되지 않음',
+  vna: 'VNA에서 교정함',
+  unknown: '모름 / 안 함',
+}
+
+export const TONES: readonly Tone[] = ['good', 'caution', 'problem']
+
+export function toneLabel(tone: Tone): string {
+  return TONE_LABEL[tone]
+}
+
+export function toneSymbol(tone: Tone): string {
+  return TONE_SYMBOL[tone]
 }
 
 export function stageTone(stage: Stage): Tone {

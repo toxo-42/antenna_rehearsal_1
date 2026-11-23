@@ -11,5 +11,5 @@ export function lengthValue(text: string): number | null {
 /** Shown under the box when its text cannot be sent, so a typo is never dropped silently. */
 export function lengthNotice(text: string): string | null {
   if (text.trim() === '' || lengthValue(text) !== null) return null
-  return '숫자만 입력해 주세요 (예: 12 또는 11.5). 지금은 길이 없이 판정합니다.'
+  return '숫자만 입력해 주세요 (예: 12 또는 11.5).'
 }

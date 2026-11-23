@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { AssistBoxes } from './AssistBoxes.tsx'
 import { StageChip } from './Badges.tsx'
+import { CriteriaHelp } from './CriteriaHelp.tsx'
 import { stageTone } from './labels.ts'
-import type { Card, Diagnosis, Remeasure } from './types.ts'
+import type { Card, Diagnosis, Kind, Remeasure } from './types.ts'
 
 interface VerdictProps {
   card: Card
+  /** The antenna kind: the stage criteria differ by kind. */
+  kind: Kind
   measurementId: number
-  /** Fills the USB range boxes and opens the measure tab. Left out where measuring is hidden. */
+  /** Fills the USB range boxes; nothing is measured. Left out where measuring is hidden. */
   onRemeasure?: (remeasure: Remeasure) => void
 }
 
@@ -15,12 +18,15 @@ interface VerdictProps {
  * The verdict card. Every sentence and number is the server's string, shown as it is.
  * Order: headline -> diagnoses (title, action, evidence, guide) -> status.
  */
-export function VerdictCard({ card, measurementId, onRemeasure }: VerdictProps) {
+export function VerdictCard({ card, kind, measurementId, onRemeasure }: VerdictProps) {
   const again = card.remeasure ?? null
   return (
     <section className={`card verdict tone-border-${stageTone(card.stage)}`} aria-label="판정 카드">
       <div className="verdict-headline">
-        <StageChip stage={card.stage} />
+        <div className="verdict-state">
+          <StageChip stage={card.stage} />
+          <CriteriaHelp kind={kind} />
+        </div>
         <h2>{card.headline}</h2>
       </div>
       {card.diagnoses.length > 0 && <Diagnoses diagnoses={card.diagnoses} />}
@@ -29,7 +35,7 @@ export function VerdictCard({ card, measurementId, onRemeasure }: VerdictProps) 
           <p className="explain-warning">{again.note}</p>
           {onRemeasure !== undefined && (
             <button type="button" className="button-secondary" onClick={() => onRemeasure(again)}>
-              이 범위를 USB 측정 칸에 채우기 →
+              이 범위를 측정 범위에 채우기
             </button>
           )}
         </div>

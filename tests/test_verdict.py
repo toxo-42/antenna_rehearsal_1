@@ -1,6 +1,7 @@
 """The verdict card: stage, headline, status lines, and its serialized shape."""
 
 import json
+import re
 from dataclasses import asdict
 from pathlib import Path
 
@@ -9,10 +10,12 @@ import pytest
 from src.classify import classify
 from src.models import AntennaKind, CalMode, Card, CardStage, Sweep
 from src.synthetic import SAMPLE_NAMES, make_sample
-from src.verdict import build_card
+from src.verdict import CAL_TEXT, build_card
 from tests.diag_helpers import antenna, magnitude_sweep
 
-CONTRACT = Path(__file__).resolve().parent.parent / "contract" / "measurement.json"
+ROOT = Path(__file__).resolve().parent.parent
+CONTRACT = ROOT / "contract" / "measurement.json"
+WEB_LABELS = ROOT / "web" / "src" / "labels.ts"
 
 
 def sample_card(name: str, cal_mode: CalMode = CalMode.VNA) -> Card:
@@ -174,3 +177,16 @@ def test_serialized_card_has_the_contract_keys(name: str) -> None:
         assert list(diagnosis) == list(contract["diagnoses"][0])
         assert all(isinstance(value, str) for value in diagnosis.values())
     json.dumps(card, allow_nan=False)
+
+
+def test_the_calibration_line_uses_the_words_of_the_measure_screen() -> None:
+    assert lines_with(sample_card("good", CalMode.VNA), "교정") == ["교정: VNA에서 교정함"]
+    assert lines_with(sample_card("good", CalMode.UNKNOWN), "교정") == ["교정: 모름 / 안 함"]
+
+
+def test_calibration_words_match_the_screen_labels() -> None:
+    text = WEB_LABELS.read_text(encoding="utf-8")
+    body = re.search(r"const CAL_MODE_LABEL[^{]*\{(.*?)\}", text, re.DOTALL)
+    assert body is not None
+    screen = dict(re.findall(r"(\w+): '([^']*)'", body.group(1)))
+    assert screen == {mode.value: words for mode, words in CAL_TEXT.items()}

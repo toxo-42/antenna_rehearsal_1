@@ -48,22 +48,25 @@ test('each tone has its own symbol, so color is never the only cue', () => {
 
 test('source decides the badge text', () => {
   assert.equal(SOURCES.length, 4)
-  assert.equal(sourceLabel('usb'), '실측')
+  assert.equal(sourceLabel('usb'), 'VNA 측정')
   assert.equal(sourceLabel('csv'), 'CSV')
   assert.equal(sourceLabel('synthetic'), '합성 데이터')
   assert.equal(sourceLabel('stored'), '저장된 측정')
 })
 
 test('a stored measurement is never labelled as a live measurement', () => {
-  assert.ok(!sourceLabel('stored').includes('실측'))
-  assert.ok(!sourceLabel('synthetic').includes('실측'))
+  for (const live of ['실측', 'VNA']) {
+    assert.ok(!sourceLabel('stored').includes(live))
+    assert.ok(!sourceLabel('synthetic').includes(live))
+    assert.ok(!sourceLabel('csv').includes(live))
+  }
 })
 
 test('kind and calibration values have Korean labels', () => {
   assert.equal(kindLabel('monopole'), '모노폴')
   assert.equal(kindLabel('patch'), '패치')
-  assert.equal(calModeLabel('vna'), '본체에서 교정함')
-  assert.equal(calModeLabel('unknown'), '확인되지 않음')
+  assert.equal(calModeLabel('vna'), 'VNA에서 교정함')
+  assert.equal(calModeLabel('unknown'), '모름 / 안 함')
   assert.equal(KINDS.length, 2)
   assert.equal(CAL_MODES.length, 2)
 })

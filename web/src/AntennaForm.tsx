@@ -38,13 +38,11 @@ export function AntennaForm({ onAdded }: { onAdded: (antenna: Antenna) => void }
     <form className="subform" onSubmit={submit}>
       <h3>새 안테나 추가</h3>
       <label className="field">
-        이름 (name)
+        이름
         <input type="text" value={name} placeholder="예: 모노폴 B" onChange={(event) => setName(event.target.value)} />
       </label>
-      <div className="field-row">
-        <KindSelect kind={kind} onChange={setKind} />
-        <TargetField target={target} onChange={setTarget} />
-      </div>
+      <KindSelect kind={kind} onChange={setKind} />
+      <TargetField target={target} onChange={setTarget} />
       {error !== null && <ErrorNotice error={error} />}
       <button type="submit" className="button-secondary" disabled={busy}>
         안테나 추가
@@ -56,7 +54,7 @@ export function AntennaForm({ onAdded }: { onAdded: (antenna: Antenna) => void }
 function TargetField({ target, onChange }: { target: string; onChange: (target: string) => void }) {
   return (
     <label className="field">
-      목표 주파수 (target_mhz, MHz)
+      목표 주파수 (MHz)
       <input type="text" inputMode="decimal" value={target} onChange={(event) => onChange(event.target.value)} />
     </label>
   )
@@ -65,11 +63,11 @@ function TargetField({ target, onChange }: { target: string; onChange: (target: 
 function KindSelect({ kind, onChange }: { kind: Kind; onChange: (kind: Kind) => void }) {
   return (
     <label className="field">
-      종류 (kind)
+      종류
       <select value={kind} onChange={(event) => onChange(event.target.value as Kind)}>
         {KINDS.map((value) => (
           <option key={value} value={value}>
-            {kindLabel(value)} ({value})
+            {kindLabel(value)}
           </option>
         ))}
       </select>

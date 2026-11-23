@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   ASK_NOT_IN_CARD,
+  EXPLAIN_BUTTON,
   EXPLAIN_LABEL,
   askNotice,
   explainNotice,
@@ -38,6 +39,7 @@ test('a list keeps its first number, and blank lines split lists', () => {
 })
 
 test('the label says the card is the authority', () => {
+  assert.equal(EXPLAIN_BUTTON, 'AI 튜터에게 설명 듣기')
   assert.equal(EXPLAIN_LABEL, 'AI 설명(참고용). 결론과 수치는 위 카드가 기준입니다')
 })
 
