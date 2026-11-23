@@ -1,5 +1,6 @@
 """HTTP routes. They only translate between HTTP and `service`; all rules live in `service`."""
 
+import re
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -9,13 +10,14 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
+from pydantic import AfterValidator, BaseModel, ConfigDict, StrictFloat, StrictInt
 from starlette.exceptions import HTTPException
 
-from src import assist, compare, criteria, manage, saa2, service
+from src import assist, compare, criteria, device, manage, saa2, service
 from src.length import check_length, parse_length
 
 router = APIRouter(prefix="/api")
+ASCII_DIGITS = re.compile(r"-?[0-9]+")  # "-5" stays an id that does not exist (404)
 
 ERROR_STATUS: dict[type[Exception], int] = {
     service.InputError: 422,
@@ -30,9 +32,19 @@ DEMO_REFUSAL = (
 )
 
 
+def _utf8(value: str) -> str:
+    """Refuse text that UTF-8 cannot carry (a lone surrogate such as JSON "\\ud800"): it could be
+    neither stored nor sent back. UnicodeEncodeError is a ValueError, so it becomes a 422."""
+    value.encode("utf-8")
+    return value
+
+
+Text = Annotated[str, AfterValidator(_utf8)]  # every text field of a request body or form
+
+
 class AntennaBody(BaseModel):
-    name: str
-    kind: str
+    name: Text
+    kind: Text
     target_mhz: StrictFloat  # takes 433 and 433.0, refuses true and "433"
 
 
@@ -40,24 +52,24 @@ class RenameBody(BaseModel):
     """Only the name can change: any other field is refused, not ignored."""
 
     model_config = ConfigDict(extra="forbid")
-    name: str
+    name: Text
 
 
 class MeasurementBody(BaseModel):
     antenna_id: StrictInt
-    source: str
-    sample: str | None = None
-    cal_mode: str
-    change_note: str = ""
+    source: Text
+    sample: Text | None = None
+    cal_mode: Text
+    change_note: Text = ""
     length_cm: StrictFloat | None = None  # conductor length now; None when not entered
-    port: str | None = None  # source = usb only, with the three below
+    port: Text | None = None  # source = usb only, with the three below
     start_mhz: StrictFloat | None = None
     stop_mhz: StrictFloat | None = None
     points: StrictInt | None = None
 
 
 class QuestionBody(BaseModel):
-    question: str
+    question: Text
 
 
 def install(app: FastAPI, db_path: Path, parts: assist.LlmParts, read_only: bool = False) -> None:
@@ -168,7 +180,7 @@ def list_ports() -> list[str]:
 @router.get("/device/screen", dependencies=WRITABLE)
 def device_screen(request: Request, port: str | None = None) -> Response:
     state = request.app.state
-    png = service.device_screen(port, state.serial_opener, state.usb_lock)
+    png = device.device_screen(port, state.serial_opener, state.usb_lock)
     return Response(content=png, media_type="image/png")
 
 
@@ -192,15 +204,28 @@ def create_measurement(request: Request, body: MeasurementBody) -> dict[str, Any
     return service.measure(_db(request), synthetic, measure)
 
 
+def _form_id(text: str) -> int:
+    """The antenna id from a form field: ASCII digits (a leading "-" allowed), so "1.0", "+1",
+    " 1", "1_0" and full-width digits are 422."""
+    try:
+        if ASCII_DIGITS.fullmatch(text) is None:
+            raise ValueError(text)
+        return int(text)  # a number with thousands of digits is a ValueError too
+    except ValueError:
+        raise service.InputError(
+            f"안테나 번호(antenna_id)는 숫자만 써 주세요 (받은 값: '{text[:20]}')."
+        ) from None
+
+
 def _upload_fields(
-    antenna_id: Annotated[int, Form()],
-    cal_mode: Annotated[str, Form()],
-    change_note: Annotated[str, Form()] = "",
-    length_cm: Annotated[str, Form()] = "",  # blank means not entered
+    antenna_id: Annotated[Text, Form()],
+    cal_mode: Annotated[Text, Form()],
+    change_note: Annotated[Text, Form()] = "",
+    length_cm: Annotated[Text, Form()] = "",  # blank means not entered
 ) -> service.MeasureInput:
     """The form fields sent next to an uploaded file."""
     length = _checked(parse_length, length_cm)
-    return service.MeasureInput(antenna_id, cal_mode, change_note, length)
+    return service.MeasureInput(_form_id(antenna_id), cal_mode, change_note, length)
 
 
 @router.post("/measurements/upload", dependencies=WRITABLE)

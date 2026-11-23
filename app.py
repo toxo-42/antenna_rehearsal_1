@@ -35,6 +35,7 @@ def create_app(
         raise ValueError(f"APP_MODE는 {' 또는 '.join(MODES)}여야 합니다: {mode!r}")
     demo = mode == "demo"
     db_path = db_path or (DEMO_DB if demo else DEFAULT_DB)
+    store.set_read_only(db_path, demo)  # every connection in demo mode is opened read-only
     if demo:
         _check_demo_db(db_path)
     # The built-in /docs and /redoc pages load their scripts from the internet: off.
@@ -47,7 +48,8 @@ def create_app(
     def health() -> dict[str, object]:
         return {"mode": mode, **assist.health_flags(llm), "ports": []}
 
-    store.init_db(db_path)
+    if not demo:  # demo mode never writes: no tables are created, no columns added
+        store.init_db(db_path)
     api.install(app, db_path, llm, read_only=demo)
 
     # Mounted last so /api routes win over the static catch-all.
@@ -57,10 +59,17 @@ def create_app(
 
 
 def _check_demo_db(db_path: Path) -> None:
-    """Demo mode never creates or fills its database: a missing or empty one stops the start."""
+    """Demo mode never creates, fills or upgrades its database: a missing, old or empty one
+    stops the start."""
     hint = "먼저 `uv run python scripts/export_demo.py <측정 id...>`로 만드세요."
     if not db_path.is_file():
         raise FileNotFoundError(f"시연용 DB가 없습니다: {db_path}. {hint}")
+    missing = store.missing_schema(db_path)
+    if missing:
+        raise ValueError(
+            f"시연용 DB의 구조가 지금 버전과 맞지 않습니다: {db_path}. "
+            f"없는 것: {', '.join(missing)}. {hint}"
+        )
     if store.count_measurements(db_path) == 0:
         raise ValueError(f"시연용 DB에 측정이 없습니다: {db_path}. {hint}")
 

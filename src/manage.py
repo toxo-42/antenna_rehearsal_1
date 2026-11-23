@@ -9,7 +9,8 @@ from src.service import InputError, NotFoundError, Row, json_safe
 
 
 def overview(db_path: Path) -> list[Row]:
-    """Every antenna with its measurement count and the stage and resonance of the newest one."""
+    """Every antenna with its measurement count and the newest one's time, stage, resonance and
+    source."""
     with store.connect(db_path) as conn:
         return json_safe([_overview_row(conn, antenna) for antenna in store.list_antennas(conn)])
 
@@ -23,6 +24,7 @@ def _overview_row(conn: sqlite3.Connection, antenna: Row) -> Row:
         "last_measured_at": last["measured_at"] if last else None,
         "last_stage": last["stage"] if last else None,
         "last_resonance_mhz": last["resonance_mhz"] if last else None,
+        "last_source": last["source"] if last else None,
     }
 
 

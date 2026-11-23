@@ -16,13 +16,13 @@ Row = dict[str, Any]
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS antennas (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     kind TEXT NOT NULL,
     target_mhz REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS measurements (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     antenna_id INTEGER NOT NULL REFERENCES antennas(id),
     measured_at TEXT NOT NULL,
     source TEXT NOT NULL,
@@ -46,6 +46,9 @@ LIST_COLUMNS = (
 )
 # Columns added after the first release: a database made before them gets them on start.
 ADDED_COLUMNS = {"length_cm": "REAL"}
+ANTENNA_COLUMNS = ("id", "name", "kind", "target_mhz")
+# Paths served read-only (demo mode): `connect` opens them with SQLite's `mode=ro`.
+_READ_ONLY: set[Path] = set()
 
 
 @dataclass(frozen=True)
@@ -84,10 +87,34 @@ def init_db(db_path: Path) -> None:
                 conn.execute(f"ALTER TABLE measurements ADD COLUMN {name} {kind}")
 
 
+def set_read_only(db_path: Path, read_only: bool) -> None:
+    """From now on open `db_path` read-only (demo mode) or for writing (local mode)."""
+    (_READ_ONLY.add if read_only else _READ_ONLY.discard)(db_path.resolve())
+
+
+def missing_schema(db_path: Path) -> list[str]:
+    """What the code reads but the file lacks: "<table> 표" or "<table>.<column>". Reads only."""
+    needed = {
+        "antennas": ANTENNA_COLUMNS,
+        "measurements": ("id", *(field.name for field in fields(NewMeasurement))),
+    }
+    missing: list[str] = []
+    with connect(db_path) as conn:
+        for table, columns in needed.items():
+            have = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+            wanted = [f"{table}.{column}" for column in columns if column not in have]
+            missing += wanted if have else [f"{table} 표"]
+    return missing
+
+
 @contextmanager
 def connect(db_path: Path) -> Iterator[sqlite3.Connection]:
-    """Open one connection, commit on success, roll back on error, and always close."""
-    conn = sqlite3.connect(db_path)
+    """Open one connection, commit on success, roll back on error, and always close.
+    A path marked with `set_read_only` is opened so that SQLite itself refuses every write."""
+    if db_path.resolve() in _READ_ONLY:
+        conn = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
+    else:
+        conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     try:

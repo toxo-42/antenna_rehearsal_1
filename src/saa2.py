@@ -128,9 +128,28 @@ def list_ports() -> list[str]:
 def open_serial(name: str) -> SerialPort:
     try:
         return serial.Serial(name, BAUD, timeout=READ_TIMEOUT_S, write_timeout=WRITE_TIMEOUT_S)
-    except (serial.SerialException, ValueError) as error:
+    # pyserial's own errors, and e.g. termios.error, which is not an OSError: all mean "no port".
+    except Exception as error:  # noqa: BLE001
         raise DeviceError(
             f"포트 {name}을(를) 열 수 없습니다. 케이블과 포트를 확인해 주세요. ({error})"
+        ) from None
+
+
+def with_port[T](name: str, opener: Opener, work: Callable[[SerialPort], T]) -> T:
+    """Open the port, run `work` on it and close it. Whatever goes wrong while opening, using
+    or closing it leaves as DeviceError, and an opened port is always closed."""
+    try:
+        port = opener(name)
+        try:
+            return work(port)
+        finally:
+            port.close()
+    except DeviceError:
+        raise
+    # pyserial errors, write timeouts, termios.error, ...: nothing may leave as a plain 500.
+    except Exception as error:  # noqa: BLE001
+        raise DeviceError(
+            f"USB 통신 중 오류가 났습니다. 케이블을 확인해 주세요. ({error})"
         ) from None
 
 
@@ -210,13 +229,7 @@ class Saa2Source:
         self.clock = clock or SystemClock()
 
     def read(self) -> Sweep:
-        port = self.opener(self.port)
-        try:
-            gammas = self._measure(port)
-        except OSError as error:  # pyserial errors, write timeouts included
-            raise DeviceError(f"USB 통신 중 오류가 났습니다. 케이블을 확인해 주세요. ({error})")
-        finally:
-            port.close()
+        gammas = with_port(self.port, self.opener, self._measure)
         return to_sweep(axis_hz(self.sweep_range), gammas)
 
     def _measure(self, port: SerialPort) -> list[complex]:

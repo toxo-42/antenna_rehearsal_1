@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.explain_check import format_ok, review, section, unknown_numbers, wrong_sentences
+from src.explain_check import FIRST, format_ok, review, section, unknown_numbers, wrong_sentences
 from src.models import Antenna, AntennaKind, CalMode, Card, CardStage, Diagnosis
 from src.synthetic import make_sample
 from src.verdict import build_card
@@ -141,7 +141,6 @@ def test_a_forbidden_word_that_is_not_about_the_length_passes() -> None:
         "안 됩니다",
         "금지",
         "금물",
-        "대신",
         "필요 없",
     ],
 )
@@ -237,13 +236,17 @@ def test_a_good_card_rejects_any_length_change() -> None:
     assert review(text(todo="1. 손 위치를 바꿔 봅니다."), GOOD_CARD, ANTENNA).status == "ok"
 
 
-def test_a_first_heading_named_like_the_todo_heading_is_not_checked() -> None:
+def test_a_first_heading_named_like_the_todo_heading_is_not_mistaken_for_it() -> None:
     first = "1. 도체를 늘리면 공진이 낮아집니다."
     written = text(first="지금 해 볼 것").replace("공진은 있지만 목표에 맞지 않습니다.", first)
 
     assert format_ok(written)
     assert "늘리면" not in section(written, "지금 해 볼 것")
-    assert review(written, SHORTEN_CARD, ANTENNA).status == "ok"
+    assert "늘리면" in section(written, FIRST)
+    # The body under the first heading is a checked section of its own since 2026-11-23.
+    assert review(written, SHORTEN_CARD, ANTENNA).reasons == (
+        "방향: 도체를 늘리면 공진이 낮아집니다.",
+    )
 
 
 def test_a_card_value_with_many_digits_is_read_without_error() -> None:

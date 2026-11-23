@@ -21,13 +21,7 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 def capture_png(port_name: str, opener: saa2.Opener, clock: saa2.Clock | None = None) -> bytes:
     """Read the device screen and return it as a PNG. The port is closed on every path."""
     clock = clock or saa2.SystemClock()
-    port = opener(port_name)
-    try:
-        width, height, pixels = _read_screen(port, clock)
-    except OSError as error:  # pyserial errors, write timeouts included
-        raise saa2.DeviceError(f"USB 통신 중 오류가 났습니다. 케이블을 확인해 주세요. ({error})")
-    finally:
-        port.close()
+    width, height, pixels = saa2.with_port(port_name, opener, lambda p: _read_screen(p, clock))
     return rgb565_png(width, height, pixels)
 
 

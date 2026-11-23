@@ -14,14 +14,20 @@ KIND_NAME = {AntennaKind.MONOPOLE: "모노폴", AntennaKind.PATCH: "패치"}
 HEADING = "## "
 HEADINGS = ("지금 상태", "왜 이렇게 나왔나", "지금 해 볼 것", "다시 재서 확인할 것")
 TODO = "지금 해 볼 것"
-LENGTHEN = "늘리"
+RECHECK = "다시 재서 확인할 것"
+FIRST = "첫 제목"  # names the body under the free first heading
+# Sections whose sentences get the direction check. The two explaining sections ("지금 상태",
+# "왜 이렇게 나왔나") may state the rule "늘리면 낮아지고 줄이면 높아집니다" and stay unchecked.
+CHECKED_SECTIONS = (FIRST, TODO, RECHECK)
+LENGTHEN = "늘리"  # these two stems decide which direction the card's actions take
 SHORTEN = "줄이"
-CUT = "자르"
-ADD = "덧붙"
+SHORTEN_WORDS = ("줄이", "줄여", "줄인", "자르", "잘라", "자른", "짧게")
+LENGTHEN_WORDS = ("늘리", "늘려", "늘린", "덧붙", "덧대", "길게")
 LENGTH_WORDS = ("도체", "길이", "안테나")
 NEGATIONS = (
-    "마세요", "하지 마", "하지 않", "말고", "않도록", "안 됩니다", "금지", "금물", "대신", "필요 없",
+    "마세요", "하지 마", "하지 않", "지 않", "말고", "않도록", "안 됩니다", "금지", "금물", "필요 없",
 )  # fmt: skip
+NEGATION_WINDOW = 6  # a negation excuses a word when it begins at most this far after the word
 
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _LIST_MARK = re.compile(r"^\s*\d+[.)]\s", re.MULTILINE)
@@ -59,8 +65,9 @@ def format_ok(text: str) -> bool:
 
 def section(text: str, title: str) -> str:
     """The lines under one of the four fixed headings, found by its position (the free first
-    heading may use the same words). Call it only on a text that passed `format_ok`."""
-    position = 1 + HEADINGS.index(title)
+    heading may use the same words), or under the first heading for `FIRST`. Call it only on a
+    text that passed `format_ok`."""
+    position = 0 if title == FIRST else 1 + HEADINGS.index(title)
     lines: list[str] = []
     count = -1
     for line in text.splitlines():
@@ -72,7 +79,7 @@ def section(text: str, title: str) -> str:
 
 
 def forbidden_words(card: Card) -> tuple[str, ...]:
-    """Words the "지금 해 볼 것" section may not use, from the directions in the card's actions.
+    """Words the checked sections may not use, from the directions in the card's actions.
     The card's own warning "자르지 말고 덧붙여서" still passes when copied: it carries a negation."""
     actions = " ".join(d.action for d in card.diagnoses)
     return _direction_words(actions)
@@ -83,10 +90,10 @@ def _direction_words(actions: str) -> tuple[str, ...]:
     if longer and shorter:
         return ()
     if longer:
-        return (SHORTEN, CUT)
+        return SHORTEN_WORDS
     if shorter:
-        return (LENGTHEN, ADD)
-    return (SHORTEN, LENGTHEN, CUT, ADD)
+        return LENGTHEN_WORDS
+    return SHORTEN_WORDS + LENGTHEN_WORDS
 
 
 def sentences(text: str) -> list[str]:
@@ -95,19 +102,29 @@ def sentences(text: str) -> list[str]:
     return [piece for piece in pieces if piece]
 
 
+def _excused(sentence: str, end: int) -> bool:
+    """Whether a negation begins within NEGATION_WINDOW characters after position `end`."""
+    starts = (sentence.find(negation, end) for negation in NEGATIONS)
+    return any(0 <= start - end <= NEGATION_WINDOW for start in starts)
+
+
+def _plain_use(sentence: str, forbidden: tuple[str, ...]) -> bool:
+    """Whether some occurrence of a forbidden word has no negation right after it."""
+    ends = (m.end() for word in forbidden for m in re.finditer(re.escape(word), sentence))
+    return any(not _excused(sentence, end) for end in ends)
+
+
 def _breaks_direction(sentence: str, forbidden: tuple[str, ...]) -> bool:
-    return (
-        any(word in sentence for word in forbidden)
-        and any(word in sentence for word in LENGTH_WORDS)
-        and not any(word in sentence for word in NEGATIONS)
-    )
+    return any(word in sentence for word in LENGTH_WORDS) and _plain_use(sentence, forbidden)
 
 
 def wrong_sentences(text: str, card: Card) -> list[str]:
-    """Sentences of "지금 해 볼 것" with a forbidden word, a word naming the length, and no
-    negation. A forbidden word alone is not enough: "접지판을 늘리거나" is not about length."""
+    """Sentences of the CHECKED_SECTIONS with a word naming the length and a forbidden word that
+    no negation follows. A forbidden word alone is not enough: "접지판을 늘리거나" is not about
+    length. A negation elsewhere in the sentence does not count: "…말고 도체를 자르세요"."""
     forbidden = forbidden_words(card)
-    return [s for s in sentences(section(text, TODO)) if _breaks_direction(s, forbidden)]
+    checked = (s for title in CHECKED_SECTIONS for s in sentences(section(text, title)))
+    return [s for s in checked if _breaks_direction(s, forbidden)]
 
 
 def direction_ok(text: str, card: Card) -> bool:

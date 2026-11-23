@@ -55,7 +55,7 @@ def test_overview_counts_measurements_and_shows_the_newest(client: TestClient) -
     assert rows[empty] | {"id": 0} == {
         "id": 0, "name": "empty", "kind": "monopole", "target_mhz": 433.0,
         "measurement_count": 0, "last_measured_at": None, "last_stage": None,
-        "last_resonance_mhz": None,
+        "last_resonance_mhz": None, "last_source": None,
     }  # fmt: skip
     assert rows[used]["measurement_count"] == 2
     assert rows[used]["last_stage"] == newest["card"]["stage"] == "offtarget"

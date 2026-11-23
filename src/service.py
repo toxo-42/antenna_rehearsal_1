@@ -6,13 +6,14 @@ TooLargeError (413), BusyError (409), DeviceError (503).
 
 import json
 import math
+import sqlite3
 import threading
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from src import saa2, saa2_screen, store
+from src import saa2, store
 from src.classify import classify
 from src.models import Antenna, AntennaKind, CalMode, CardStage, Sweep
 from src.sources import SOURCE_VALUES, SweepSource, SyntheticSource
@@ -147,20 +148,6 @@ def measure_usb(
     return _save(db_path, sweep, source.source, antenna, request)
 
 
-def device_screen(port: str | None, opener: saa2.Opener, lock: threading.Lock) -> bytes:
-    """The SAA-2 screen as PNG. Not while a USB measurement holds the port (BusyError)."""
-    if port is None or not port.strip():
-        raise InputError("USB 포트(port)를 골라 주세요.")
-    if not lock.acquire(blocking=False):
-        raise BusyError("USB 측정이 진행 중입니다. 끝난 뒤 다시 시도해 주세요.")
-    try:
-        return saa2_screen.capture_png(port, opener)
-    except saa2.DeviceError as error:
-        raise DeviceError(str(error)) from None
-    finally:
-        lock.release()
-
-
 def measure(db_path: Path, source: SweepSource, request: MeasureInput) -> Row:
     """Read a sweep from any source, judge it against the stored antenna, and save it."""
     _check_choice("source", source.source, list(SOURCE_VALUES))
@@ -273,8 +260,13 @@ def _save(db_path: Path, sweep: Sweep, source: str, antenna: Antenna, request: M
         raise InputError(str(error)) from None
     _check_target_in(sweep.f_mhz[0], sweep.f_mhz[-1], antenna)
     new = _new_measurement(sweep, source, antenna, request)
-    with store.connect(db_path) as conn:
-        measurement_id = store.insert_measurement(conn, new)
+    try:
+        with store.connect(db_path) as conn:
+            measurement_id = store.insert_measurement(conn, new)
+    except sqlite3.IntegrityError:  # the antenna was deleted after it was read (foreign key)
+        raise NotFoundError(
+            f"안테나 {request.antenna_id}번이 없습니다. 측정하는 동안 삭제되어 저장하지 않았습니다."
+        ) from None
     return get_measurement(db_path, measurement_id)
 
 

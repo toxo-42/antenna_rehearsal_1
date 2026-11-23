@@ -12,6 +12,7 @@ from pathlib import Path
 from src import store
 
 Row = store.Row
+LIVE_DB = Path(__file__).resolve().parent.parent / "antenna.db"  # local mode's database
 
 
 class ExportError(ValueError):
@@ -29,12 +30,31 @@ def export_measurements(source: Path, out: Path, ids: Sequence[int]) -> int:
     # samefile also sees through hard links and letter case on case-insensitive disks.
     if out.exists() and out.samefile(source):
         raise ExportError(f"내보낼 파일이 원본 DB와 같습니다: {out}")
-    with store.connect(source) as conn:
-        measurements = _chosen_measurements(conn, chosen)
-        antenna_ids = {row["antenna_id"] for row in measurements}
-        antennas = [row for row in store.list_antennas(conn) if row["id"] in antenna_ids]
+    if _same_path(out, LIVE_DB):
+        raise ExportError(f"내보낼 파일이 실제 측정 DB입니다: {out}. 다른 경로를 고르세요.")
+    if not out.parent.is_dir():
+        raise ExportError(f"내보낼 폴더가 없습니다: {out.parent}")
+    try:
+        with store.connect(source) as conn:
+            measurements = _chosen_measurements(conn, chosen)
+            antenna_ids = {row["antenna_id"] for row in measurements}
+            antennas = [row for row in store.list_antennas(conn) if row["id"] in antenna_ids]
+    except sqlite3.DatabaseError:
+        raise ExportError(unreadable(source)) from None
     _write(out, antennas, measurements)
     return len(measurements)
+
+
+def unreadable(source: Path) -> str:
+    """The message for a source that is empty or not a measurement database."""
+    return f"원본 DB를 읽을 수 없습니다 (비어 있거나 측정 DB가 아닙니다): {source}"
+
+
+def _same_path(path: Path, other: Path) -> bool:
+    """samefile when both exist (hard links, letter case); the resolved paths otherwise."""
+    if path.exists() and other.exists():
+        return path.samefile(other)
+    return path.resolve() == other.resolve()
 
 
 def _checked_ids(ids: Sequence[int]) -> list[int]:

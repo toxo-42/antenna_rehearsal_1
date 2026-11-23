@@ -7,6 +7,7 @@ Options: --db PATH (default: antenna.db), --out PATH (default: demo.db). Exit co
 """
 
 import argparse
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -14,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src import store
-from src.demo_export import ExportError, export_measurements
+from src.demo_export import ExportError, export_measurements, unreadable
 
 LIST_LIMIT = 1000
 
@@ -23,10 +24,14 @@ def print_choices(db_path: Path) -> int:
     if not db_path.is_file():
         print(f"원본 DB가 없습니다: {db_path}", file=sys.stderr)
         return 1
-    with store.connect(db_path) as conn:
-        names = {row["id"]: row["name"] for row in store.list_antennas(conn)}
-        # One extra row tells whether the list was cut; newest rows come first.
-        rows = store.list_measurements(conn, store.MeasurementQuery(limit=LIST_LIMIT + 1))
+    try:
+        with store.connect(db_path) as conn:
+            names = {row["id"]: row["name"] for row in store.list_antennas(conn)}
+            # One extra row tells whether the list was cut; newest rows come first.
+            rows = store.list_measurements(conn, store.MeasurementQuery(limit=LIST_LIMIT + 1))
+    except sqlite3.DatabaseError:
+        print(unreadable(db_path), file=sys.stderr)
+        return 1
     print("id\t안테나\t측정 시각\t출처\t단계\t메모")
     for row in sorted(rows[:LIST_LIMIT], key=lambda r: r["id"]):
         antenna = names.get(row["antenna_id"], "?")

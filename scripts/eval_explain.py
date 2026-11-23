@@ -1,8 +1,8 @@
 """Generate plain-language explanations for 10 cards with a real local model.
 
 Usage: uv run python scripts/eval_explain.py <model>
-Cards: the 6 measured rows of tests/data/ and the synthetic offtarget_low, offtarget_high, good,
-unmatched_low_r (cal_mode vna). Pass: at most 2 of 10 rejected or failed and a mean of at most
+Cards: the 6 measured files of tests/data/ (cal_mode vna; the USB patch file unknown) and the
+synthetic offtarget_low, offtarget_high, good, unmatched_low_r (cal_mode vna). Pass: at most 2 of 10 rejected or failed and a mean of at most
 90 seconds. Exit code 1 on fail. Read the printed texts and check each agrees with its card.
 A rejected try (even one a retry recovered) is printed with the sentence or format that broke it.
 """
@@ -21,13 +21,13 @@ from src.synthetic import make_sample
 from src.verdict import build_card
 
 DATA = ROOT / "tests" / "data"
-MEASURED = [
-    ("monopole_5cm.csv", AntennaKind.MONOPOLE, 1350.0),
-    ("monopole_11.5cm.csv", AntennaKind.MONOPOLE, 650.0),
-    ("monopole_12cm.csv", AntennaKind.MONOPOLE, 625.0),
-    ("monopole_12cm.csv", AntennaKind.MONOPOLE, 433.0),
-    ("monopole_14cm.csv", AntennaKind.MONOPOLE, 535.0),
-    ("saa2_patch_2450.csv", AntennaKind.PATCH, 2450.0),
+MEASURED = [  # file, kind, target MHz, calibration (the patch was read over USB: none)
+    ("monopole_5cm.csv", AntennaKind.MONOPOLE, 1350.0, CalMode.VNA),
+    ("monopole_11.5cm.csv", AntennaKind.MONOPOLE, 650.0, CalMode.VNA),
+    ("monopole_12cm.csv", AntennaKind.MONOPOLE, 625.0, CalMode.VNA),
+    ("monopole_10cm_weak.csv", AntennaKind.MONOPOLE, 750.0, CalMode.VNA),
+    ("monopole_14cm.csv", AntennaKind.MONOPOLE, 535.0, CalMode.VNA),
+    ("saa2_patch_2450.csv", AntennaKind.PATCH, 2450.0, CalMode.UNKNOWN),
 ]
 SYNTHETIC = ["offtarget_low", "offtarget_high", "good", "unmatched_low_r"]
 MAX_BAD = 2
@@ -36,10 +36,10 @@ MAX_MEAN_S = 90.0
 
 def cards() -> list[tuple[str, Card, Antenna]]:
     found: list[tuple[str, Card, Antenna]] = []
-    for name, kind, target in MEASURED:
+    for name, kind, target, cal_mode in MEASURED:
         sweep = parse_sweep_csv((DATA / name).read_text(encoding="utf-8"))
         antenna = Antenna(name=name, kind=kind, target_mhz=target)
-        found.append((f"{name}@{target:g}", build_card(sweep, antenna, CalMode.VNA), antenna))
+        found.append((f"{name}@{target:g}", build_card(sweep, antenna, cal_mode), antenna))
     for name in SYNTHETIC:
         sample = make_sample(name)
         card = build_card(sample.sweep, sample.antenna, CalMode.VNA)
