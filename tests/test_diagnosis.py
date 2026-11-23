@@ -39,6 +39,7 @@ RULE_ORDER = [
     "feed_fault",
     "lossy",
     "length_far",
+    "weak_fundamental",
     "out_of_range",
     "too_short",
     "too_long",

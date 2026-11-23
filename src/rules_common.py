@@ -9,12 +9,15 @@ from src.models import (
     RuleContext,
     Stage,
 )
-from src.rule_tools import SHORTEN, finding, length_caution, length_name
-from src.rules_none import far_resonance, has_positive_s11
-from src.tolerance import at_least, at_most
-
-THIRD_MODE_MIN_RATIO = 2.6
-THIRD_MODE_MAX_RATIO = 3.4
+from src.rule_tools import (
+    SHORTEN,
+    finding,
+    in_fifth_ratio,
+    in_third_ratio,
+    length_caution,
+    length_name,
+)
+from src.rules_none import far_resonance, has_positive_s11, weak_base
 
 NARROW_ACTION: dict[AntennaKind, str] = {
     AntennaKind.MONOPOLE: "안테나 도체를 굵게",
@@ -22,20 +25,14 @@ NARROW_ACTION: dict[AntennaKind, str] = {
 }
 
 
-def _is_base_of(selected: Resonance, other: Resonance) -> bool:
-    """True when `other` is a lower matched resonance about a third of the selected one."""
-    if other.band is None or other.f_mhz >= selected.f_mhz:
-        return False
-    ratio = selected.f_mhz / other.f_mhz
-    return at_least(ratio, THIRD_MODE_MIN_RATIO) and at_most(ratio, THIRD_MODE_MAX_RATIO)
-
-
 def third_mode_base(ctx: RuleContext) -> Resonance | None:
-    """The lower resonance that makes the selected one look like a monopole's third mode."""
+    """The lower resonance (matched or shallow) that makes the selected one look like a
+    monopole's third mode."""
     selected = ctx.classification.selected
     if ctx.antenna.kind is not AntennaKind.MONOPOLE or selected is None:
         return None
-    return next((r for r in ctx.classification.others if _is_base_of(selected, r)), None)
+    others = ctx.classification.others
+    return next((r for r in others if in_third_ratio(selected.f_mhz, r.f_mhz)), None)
 
 
 def third_mode(ctx: RuleContext) -> Diagnosis | None:
@@ -52,11 +49,40 @@ def third_mode(ctx: RuleContext) -> Diagnosis | None:
     return finding(ctx, "third_mode", "3배 모드 공진일 수 있음", evidence, action)
 
 
+def weak_fundamental(ctx: RuleContext) -> Diagnosis | None:
+    result = ctx.classification
+    judged, base = result.selected or far_resonance(ctx), weak_base(ctx)
+    if judged is None or base is None or third_mode_base(ctx) is not None:
+        return None
+    ratio = judged.f_mhz / base.f_mhz
+    evidence = (
+        f"공진 {judged.f_mhz:.2f} MHz는 얕은 딥 {base.f_mhz:.2f} MHz "
+        f"(S11 {base.s11_db:.2f} dB)의 {ratio:.2f}배"
+    )
+    action = "급전부 납땜과 안테나 도체가 곧은지 확인한 뒤 재측정. 길이는 아직 바꾸지 말 것"
+    return finding(ctx, "weak_fundamental", "기본 공진이 약함", evidence, action)
+
+
+def _is_own_higher_mode(ctx: RuleContext, other: Resonance) -> bool:
+    """True when `other` sits about three or five times above the monopole's base (the selected
+    resonance, or the weak dip when none is selected): its own higher mode, not a cable."""
+    if ctx.antenna.kind is not AntennaKind.MONOPOLE:
+        return False
+    base = ctx.classification.selected or weak_base(ctx)
+    if base is None:
+        return False
+    return in_third_ratio(other.f_mhz, base.f_mhz) or in_fifth_ratio(other.f_mhz, base.f_mhz)
+
+
 def other_resonance(ctx: RuleContext) -> Diagnosis | None:
     if third_mode_base(ctx) is not None:
         return None
     used = far_resonance(ctx)
-    matched = (r for r in ctx.classification.others if r.band is not None and r is not used)
+    matched = (
+        r
+        for r in ctx.classification.others
+        if r.band is not None and r is not used and not _is_own_higher_mode(ctx, r)
+    )
     extra = next(matched, None)
     if extra is None:
         return None

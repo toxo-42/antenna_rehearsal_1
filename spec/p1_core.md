@@ -76,6 +76,10 @@ CSV 헤더 `Frequency_Hz,S11_dB` 필수, `S11_real,S11_imag` 선택. 다른 열�
 | monopole_12cm.csv | 모노폴 | 433 | none | 다른 공진 622.95, 1833.9 순 | | | |
 | monopole_14cm.csv (1501점) | 모노폴 | 535 | narrow | 538.23 | -10.30 | 0.60 | 2.12 |
 | saa2_patch_2450.csv | 패치 | 2450 | good | 2445.0 | -30.35 | -0.20 | 3.59 |
+| monopole_12cm.csv | 모노폴 | 690 | unmatched | 622.95 | -8.59 | -9.72 | 없음 |
+| monopole_12cm.csv | 모노폴 | 560 | unmatched | 622.95 | -8.59 | 11.24 | 없음 |
+| monopole_12cm.csv | 모노폴 | 1834 | narrow | 1833.9 | -24.24 | -0.01 | 5.16 |
+| monopole_10cm_weak.csv (기본 공진이 약한 10 cm) | 모노폴 | 750 | none | 다른 공진 2132.9, 2237.55 순. 약한 딥 757.5 (-4.87 dB) | | | |
 
 (모노폴은 길이 L cm일 때 첫 공진이 7500/L MHz 근처다: 12 cm → 625, 실측 622.95. `saa2_patch_2450.csv`의 공진점 R은 52.5, X는 +1.8, 오차 0.1)
 

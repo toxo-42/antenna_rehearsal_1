@@ -69,9 +69,11 @@ def test_reactance_gives_no_direction_when_x_at_the_target_is_zero() -> None:
 
 
 def test_reactance_gives_no_direction_when_the_target_is_outside_the_sweep() -> None:
-    sweep = dip_with(50 + 40j)
+    # The sweep ends at 440 MHz. 445 MHz is 3.4 % from the 430 MHz dip: under 5 %, so the length
+    # rules stay out (tests/test_length_first.py has the far case).
+    sweep = impedance_sweep((400.0, 430.0, 440.0), [5 - 200j, 50 + 40j, 5 + 200j])
 
-    action = find(sweep, antenna(470.0), "reactance").action
+    action = find(sweep, antenna(445.0), "reactance").action
 
     assert RETEST in action
     assert "줄이는" not in action and "늘리는" not in action

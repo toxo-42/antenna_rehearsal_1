@@ -58,17 +58,11 @@ def test_third_mode_is_for_monopoles_only() -> None:
     assert keys(two_dips(600.0), ant) == ["other_resonance", "narrow"]
 
 
-def test_an_unmatched_lower_resonance_is_neither_third_mode_nor_other_resonance() -> None:
-    sweep = two_dips(600.0, lower_db=-8.0)
-
-    assert keys(sweep, antenna(600.0)) == ["narrow"]
-
-
 def test_a_higher_resonance_is_not_a_third_mode_base() -> None:
     sweep = dip_sweep({200.0: -20.0, 600.0: -20.0}, start=100.0, stop=800.0)
     ant = antenna(200.0)  # the other resonance is 3x higher, not lower
 
-    assert keys(sweep, ant) == ["other_resonance", "narrow"]
+    assert "third_mode" not in keys(sweep, ant)
 
 
 def test_third_mode_evidence_names_the_first_matching_resonance() -> None:
@@ -103,7 +97,7 @@ def test_other_resonance_after_length_far_takes_the_next_matched_one() -> None:
 
 
 def test_uncalibrated_only_for_unknown_calibration() -> None:
-    sweep = two_dips(600.0, lower_db=-8.0)
+    sweep = two_dips(600.0, lower_db=-8.0, lower_mhz=300.0)  # 2x: not a third-mode base
 
     assert keys(sweep, antenna(600.0), CalMode.VNA) == ["narrow"]
     assert keys(sweep, antenna(600.0), CalMode.UNKNOWN) == ["narrow", "uncalibrated"]

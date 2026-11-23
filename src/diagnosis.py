@@ -3,7 +3,14 @@
 from src.classify import classify
 from src.models import Antenna, CalMode, Diagnosis, RuleContext, Sweep
 from src.rule_tools import Rule
-from src.rules_common import good, narrow, other_resonance, third_mode, uncalibrated
+from src.rules_common import (
+    good,
+    narrow,
+    other_resonance,
+    third_mode,
+    uncalibrated,
+    weak_fundamental,
+)
 from src.rules_none import (
     feed_fault,
     feed_open,
@@ -24,6 +31,7 @@ RULES: tuple[Rule, ...] = (
     feed_fault,
     lossy,
     length_far,
+    weak_fundamental,
     out_of_range,
     too_short,
     too_long,

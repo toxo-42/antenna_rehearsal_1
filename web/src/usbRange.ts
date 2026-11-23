@@ -1,5 +1,21 @@
 /** SAA-2 USB measurement: range rule and the notices shown next to the measure button. */
 
+import type { Remeasure } from './types.ts'
+
+/** What the three range boxes hold. */
+export interface RangeBoxes {
+  startMhz: number
+  stopMhz: number
+  points: number
+}
+
+export const DEFAULT_USB_RANGE: RangeBoxes = { startMhz: 2000, stopMhz: 3000, points: 201 }
+
+/** Fill the range boxes with the card's suggestion. The point count stays; nothing is measured. */
+export function withRemeasure(boxes: RangeBoxes, remeasure: Remeasure): RangeBoxes {
+  return { ...boxes, startMhz: remeasure.start_mhz, stopMhz: remeasure.stop_mhz }
+}
+
 export const START_FRACTION = 0.5
 export const STOP_FRACTION = 1.5
 

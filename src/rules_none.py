@@ -3,8 +3,24 @@
 from collections.abc import Callable, Sequence
 
 from src.impedance import low_freq_gamma_real
-from src.models import POSITIVE_S11_DB, Diagnosis, Resonance, RuleContext, Stage
-from src.rule_tools import LENGTHEN, SHORTEN, amount_text, finding, length_action, target_text
+from src.models import (
+    POSITIVE_S11_DB,
+    AntennaKind,
+    Diagnosis,
+    Dip,
+    Resonance,
+    RuleContext,
+    Stage,
+)
+from src.rule_tools import (
+    LENGTHEN,
+    SHORTEN,
+    amount_text,
+    finding,
+    in_third_ratio,
+    length_action,
+    target_text,
+)
 from src.tolerance import at_least, at_most
 
 FEED_FLAT_DB = -1.0
@@ -99,9 +115,19 @@ def far_resonance(ctx: RuleContext) -> Resonance | None:
     return result.others[0]
 
 
+def weak_base(ctx: RuleContext) -> Dip | None:
+    """A monopole's weak dip about a third of the judged resonance (the selected one, or the far
+    one when none is selected): the base mode, too weak to count as a resonance."""
+    result = ctx.classification
+    judged = result.selected or far_resonance(ctx)
+    if ctx.antenna.kind is not AntennaKind.MONOPOLE or judged is None:
+        return None
+    return next((d for d in result.weak_dips if in_third_ratio(judged.f_mhz, d.f_mhz)), None)
+
+
 def length_far(ctx: RuleContext) -> Diagnosis | None:
     nearest = far_resonance(ctx)
-    if nearest is None:
+    if nearest is None or weak_base(ctx) is not None:  # a third mode says nothing about length
         return None
     ratio = nearest.f_mhz / ctx.antenna.target_mhz
     verb = SHORTEN if ratio < 1 else LENGTHEN

@@ -3,8 +3,18 @@
 from collections.abc import Callable
 
 from src.guides import guide_for
-from src.models import AntennaKind, Diagnosis, RuleContext
-from src.tolerance import ABS_TOL
+from src.models import (
+    FIFTH_MODE_MAX_RATIO,
+    FIFTH_MODE_MIN_RATIO,
+    LENGTH_FIRST_PCT,
+    THIRD_MODE_MAX_RATIO,
+    THIRD_MODE_MIN_RATIO,
+    AntennaKind,
+    Diagnosis,
+    RuleContext,
+    Stage,
+)
+from src.tolerance import ABS_TOL, at_least, at_most
 
 Rule = Callable[[RuleContext], Diagnosis | None]
 
@@ -25,6 +35,42 @@ def finding(ctx: RuleContext, key: str, title: str, evidence: str, action: str) 
     """Assemble one diagnosis; the guide sentence always comes from the fixed table."""
     guide = guide_for(key, ctx.antenna.kind)
     return Diagnosis(key=key, title=title, evidence=evidence, action=action, guide=guide)
+
+
+def step_at(ctx: RuleContext, index: int) -> float:
+    """The coarser of the two measurement gaps beside point `index`, in MHz."""
+    freqs = ctx.sweep.f_mhz
+    low, high = max(index - 1, 0), min(index + 1, len(freqs) - 1)
+    return max(freqs[index] - freqs[low], freqs[high] - freqs[index])
+
+
+def length_first(ctx: RuleContext) -> bool:
+    """True for a shallow resonance far enough from the target to fix the length first: at least
+    LENGTH_FIRST_PCT away, and at least one measurement step (a smaller miss is not resolved)."""
+    result = ctx.classification
+    selected, offset_pct = result.selected, result.offset_pct
+    if result.stage is not Stage.UNMATCHED or selected is None or offset_pct is None:
+        return False
+    distance = abs(selected.f_mhz - ctx.antenna.target_mhz)
+    far = at_least(abs(offset_pct), LENGTH_FIRST_PCT)
+    return far and at_least(distance, step_at(ctx, selected.index))
+
+
+def _ratio_within(upper_mhz: float, lower_mhz: float, limits: tuple[float, float]) -> bool:
+    if lower_mhz <= 0 or lower_mhz >= upper_mhz:
+        return False
+    ratio = upper_mhz / lower_mhz
+    return at_least(ratio, limits[0]) and at_most(ratio, limits[1])
+
+
+def in_third_ratio(upper_mhz: float, lower_mhz: float) -> bool:
+    """True when `upper_mhz` is about three times `lower_mhz` (a monopole's third mode)."""
+    return _ratio_within(upper_mhz, lower_mhz, (THIRD_MODE_MIN_RATIO, THIRD_MODE_MAX_RATIO))
+
+
+def in_fifth_ratio(upper_mhz: float, lower_mhz: float) -> bool:
+    """True when `upper_mhz` is about five times `lower_mhz` (a monopole's fifth mode)."""
+    return _ratio_within(upper_mhz, lower_mhz, (FIFTH_MODE_MIN_RATIO, FIFTH_MODE_MAX_RATIO))
 
 
 def length_name(ctx: RuleContext) -> str:

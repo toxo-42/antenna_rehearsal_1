@@ -39,11 +39,20 @@ export interface Diagnosis {
   guide: string
 }
 
+/** A narrower range to measure again, with the server's sentence. Only a suggestion. */
+export interface Remeasure {
+  start_mhz: number
+  stop_mhz: number
+  note: string
+}
+
 export interface Card {
   stage: Stage
   headline: string
   status: string[]
   diagnoses: Diagnosis[]
+  /** Missing on cards stored before this field existed. */
+  remeasure?: Remeasure | null
 }
 
 export interface Measurement {

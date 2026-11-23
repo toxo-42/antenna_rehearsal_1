@@ -3,6 +3,7 @@ import { listPorts, measureUsb } from './api.ts'
 import { EmptyNotice, ErrorNotice, LoadingNotice, SourceBadge } from './Badges.tsx'
 import type { Antenna } from './types.ts'
 import { USB_CAL_NOTICE, USB_MODE_NOTICE, choosePort, rangeWarning } from './usbRange.ts'
+import type { RangeBoxes } from './usbRange.ts'
 import type { MeasureState } from './useAppState.ts'
 import { useLoad } from './useLoad.ts'
 
@@ -15,9 +16,9 @@ interface UsbProps {
 export function UsbCard({ antenna, measure }: UsbProps) {
   const [ports, reload] = useLoad(() => listPorts(), 'ports')
   const [port, setPort] = useState<string | null>(null)
-  const [startMhz, setStartMhz] = useState(2000)
-  const [stopMhz, setStopMhz] = useState(3000)
-  const [points, setPoints] = useState(201)
+  const { startMhz, stopMhz, points } = measure.usbRange
+  const setBox = (name: keyof RangeBoxes) => (value: number) =>
+    measure.setUsbRange((boxes) => ({ ...boxes, [name]: value }))
   const chosen = choosePort(port, ports.status === 'ready' ? ports.data : null)
   const warning = rangeWarning(startMhz, stopMhz, antenna?.target_mhz ?? null)
   const start = () =>
@@ -37,9 +38,9 @@ export function UsbCard({ antenna, measure }: UsbProps) {
         <PortPicker ports={ports.data} chosen={chosen} onChoose={setPort} onReload={reload} />
       )}
       <div className="field-row">
-        <NumberField label="시작 MHz" value={startMhz} onChange={setStartMhz} />
-        <NumberField label="종료 MHz" value={stopMhz} onChange={setStopMhz} />
-        <NumberField label="점 개수 (11~1001)" value={points} onChange={setPoints} />
+        <NumberField label="시작 MHz" value={startMhz} onChange={setBox('startMhz')} />
+        <NumberField label="종료 MHz" value={stopMhz} onChange={setBox('stopMhz')} />
+        <NumberField label="점 개수 (11~1001)" value={points} onChange={setBox('points')} />
       </div>
       {warning !== null && <p className="explain-warning">{warning}</p>}
       <p className="muted">{USB_CAL_NOTICE}</p>

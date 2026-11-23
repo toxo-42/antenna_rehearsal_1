@@ -2,13 +2,21 @@ import { useState } from 'react'
 import { AssistBoxes } from './AssistBoxes.tsx'
 import { StageChip } from './Badges.tsx'
 import { stageTone } from './labels.ts'
-import type { Card, Diagnosis } from './types.ts'
+import type { Card, Diagnosis, Remeasure } from './types.ts'
+
+interface VerdictProps {
+  card: Card
+  measurementId: number
+  /** Fills the USB range boxes and opens the measure tab. Left out where measuring is hidden. */
+  onRemeasure?: (remeasure: Remeasure) => void
+}
 
 /**
  * The verdict card. Every sentence and number is the server's string, shown as it is.
  * Order: headline -> diagnoses (title, action, evidence, guide) -> status.
  */
-export function VerdictCard({ card, measurementId }: { card: Card; measurementId: number }) {
+export function VerdictCard({ card, measurementId, onRemeasure }: VerdictProps) {
+  const again = card.remeasure ?? null
   return (
     <section className={`card verdict tone-border-${stageTone(card.stage)}`} aria-label="판정 카드">
       <div className="verdict-headline">
@@ -16,6 +24,16 @@ export function VerdictCard({ card, measurementId }: { card: Card; measurementId
         <h2>{card.headline}</h2>
       </div>
       {card.diagnoses.length > 0 && <Diagnoses diagnoses={card.diagnoses} />}
+      {again !== null && (
+        <div className="verdict-remeasure" role="note">
+          <p className="explain-warning">{again.note}</p>
+          {onRemeasure !== undefined && (
+            <button type="button" className="button-secondary" onClick={() => onRemeasure(again)}>
+              이 범위를 USB 측정 칸에 채우기 →
+            </button>
+          )}
+        </div>
+      )}
       {card.status.length > 0 && (
         <div className="verdict-status">
           <h3>측정값</h3>

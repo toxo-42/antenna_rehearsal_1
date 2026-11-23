@@ -127,6 +127,8 @@ def test_stored_card_matches_the_core_and_the_stored_sweep(
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
     core = core_resonance(sample.sweep, antenna)
     contract.update({key: None for key, value in core.items() if value is None})
+    if direct["remeasure"] is not None:  # null in the contract; an object when there is a range
+        contract["card"]["remeasure"] = {"start_mhz": 0, "stop_mhz": 0, "note": ""}
 
     assert {key: got[key] for key in RESONANCE_KEYS} == {key: row[key] for key in RESONANCE_KEYS}
     assert got == created.json()

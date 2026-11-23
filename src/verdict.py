@@ -7,7 +7,9 @@ from itertools import pairwise
 from src.diagnosis import context_for, diagnose
 from src.impedance import impedance_at
 from src.models import Antenna, CalMode, Card, CardStage, RuleContext, Sweep
+from src.rule_tools import length_first
 from src.rules_none import has_positive_s11
+from src.rules_step import remeasure_range
 
 HEADLINES: dict[CardStage, str] = {
     CardStage.NONE: "목표 근처에서 공진을 찾지 못했습니다",
@@ -21,6 +23,7 @@ HEADLINES: dict[CardStage, str] = {
 HEADLINE_FOR_KEY: dict[str, str] = {
     "band_edge": "목표가 대역 끝에 가까워 이 측정 간격으로는 확정할 수 없습니다",
 }
+LENGTH_FIRST_HEADLINE = "공진이 목표 주파수에서 벗어나 있고 정합도 얕습니다"
 CAL_TEXT: dict[CalMode, str] = {
     CalMode.VNA: "본체에서 교정함",
     CalMode.UNKNOWN: "확인되지 않음",
@@ -34,9 +37,10 @@ def build_card(sweep: Sweep, antenna: Antenna, cal_mode: CalMode) -> Card:
     ctx = context_for(sweep, antenna, cal_mode)
     stage, diagnoses = _card_stage(ctx), diagnose(ctx)
     special = (HEADLINE_FOR_KEY[d.key] for d in diagnoses if d.key in HEADLINE_FOR_KEY)
-    headline = next(special, HEADLINES[stage])
+    usual = LENGTH_FIRST_HEADLINE if length_first(ctx) else HEADLINES[stage]
+    headline = next(special, usual)
     status = tuple(text for line in STATUS_LINES if (text := line(ctx)) is not None)
-    return Card(stage=stage, headline=headline, status=status, diagnoses=diagnoses)
+    return Card(stage, headline, status, diagnoses, remeasure_range(ctx))
 
 
 def _card_stage(ctx: RuleContext) -> CardStage:

@@ -1,11 +1,17 @@
 import { EmptyNotice, SourceBadge } from './Badges.tsx'
 import { antennaText, timeText } from './labels.ts'
 import { S11Chart } from './S11Chart.tsx'
-import type { Measurement } from './types.ts'
+import type { Measurement, Remeasure } from './types.ts'
 import { VerdictCard } from './VerdictCard.tsx'
 
+interface CardPageProps {
+  measurement: Measurement | null
+  emptyText: string
+  onRemeasure?: (remeasure: Remeasure) => void
+}
+
 /** Screen 2: the graph and the verdict card of one measurement. */
-export function CardPage(props: { measurement: Measurement | null; emptyText: string }) {
+export function CardPage(props: CardPageProps) {
   const { measurement } = props
   if (measurement === null) return <EmptyNotice>{props.emptyText}</EmptyNotice>
   return (
@@ -24,7 +30,12 @@ export function CardPage(props: { measurement: Measurement | null; emptyText: st
           <S11Chart measurement={measurement} />
         </section>
         <div className="column">
-          <VerdictCard key={measurement.id} card={measurement.card} measurementId={measurement.id} />
+          <VerdictCard
+            key={measurement.id}
+            card={measurement.card}
+            measurementId={measurement.id}
+            onRemeasure={props.onRemeasure}
+          />
         </div>
       </div>
     </div>

@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { choosePort, rangeWarning } from './usbRange.ts'
+import { DEFAULT_USB_RANGE, choosePort, rangeWarning, withRemeasure } from './usbRange.ts'
+
+test('the suggested range replaces start and stop and keeps the point count', () => {
+  const filled = withRemeasure({ startMhz: 10, stopMhz: 3000, points: 401 }, { start_mhz: 498, stop_mhz: 748, note: '' })
+
+  assert.deepEqual(filled, { startMhz: 498, stopMhz: 748, points: 401 })
+  assert.equal(DEFAULT_USB_RANGE.points, 201)
+})
 
 test('a chosen port that is still listed stays chosen', () => {
   assert.equal(choosePort('/dev/b', ['/dev/a', '/dev/b']), '/dev/b')

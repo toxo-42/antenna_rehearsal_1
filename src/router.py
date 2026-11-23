@@ -17,7 +17,17 @@ MAX_DIGITS = 2
 TOPICS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("측정과 교정", ("positive_s11", "uncalibrated", "out_of_range", "band_edge", "no_resonance")),
     ("연결과 납땜", ("feed_short", "feed_open", "feed_fault", "lossy", "feed_lead")),
-    ("길이와 공진", ("length_far", "too_short", "too_long", "third_mode", "other_resonance")),
+    (
+        "길이와 공진",
+        (
+            "length_far",
+            "too_short",
+            "too_long",
+            "third_mode",
+            "weak_fundamental",
+            "other_resonance",
+        ),
+    ),
     ("정합과 케이블", ("r_low", "r_high", "reactance", "match_unknown", "common_mode")),
     ("대역폭과 완성", ("narrow", "good")),
 )
@@ -30,7 +40,7 @@ PROMPT_HEAD = (
 
 class QuestionRouter(Protocol):
     def choose(self, question: str, kind: AntennaKind) -> int | None:
-        """A guide number 1..22, 0 for "no related guide", or None when linking failed."""
+        """A guide number 1..23, 0 for "no related guide", or None when linking failed."""
         ...
 
 
@@ -62,7 +72,7 @@ def build_route_prompt(question: str, kind: AntennaKind) -> str:
 
 
 def parse_choice(answer: str) -> int | None:
-    """The number when the answer holds exactly one 1-2 digit number in 0..22, else None."""
+    """The number when the answer holds exactly one 1-2 digit number in 0..23, else None."""
     found = re.findall(r"-?\d+", answer)  # keep a minus sign so "-1" is not read as 1
     if len(found) != 1 or not found[0].isdigit() or len(found[0]) > MAX_DIGITS:
         return None

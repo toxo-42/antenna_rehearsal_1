@@ -34,7 +34,8 @@ class _Case:
 
 
 def classify(sweep: Sweep, antenna: Antenna) -> Classification:
-    resonances = find_resonances(sweep).resonances
+    scan = find_resonances(sweep)
+    resonances, weak = scan.resonances, scan.weak_dips
     target = antenna.target_mhz
     selected = _select(resonances, target)
     others = tuple(
@@ -44,11 +45,11 @@ def classify(sweep: Sweep, antenna: Antenna) -> Classification:
         )
     )
     if selected is None:
-        return Classification(stage=Stage.NONE, selected=None, offset_pct=None, others=others)
+        return Classification(Stage.NONE, None, None, others, weak)
     case = _Case(selected=selected, antenna=antenna, f_mhz=sweep.f_mhz)
     stage = next((stage for applies, stage in STAGE_RULES if applies(case)), Stage.GOOD)
     offset_pct = (selected.f_mhz - target) / target * 100
-    return Classification(stage=stage, selected=selected, offset_pct=offset_pct, others=others)
+    return Classification(stage, selected, offset_pct, others, weak)
 
 
 def _spacing_at(f_mhz: Sequence[float], edge_mhz: float) -> float:

@@ -6,7 +6,8 @@ import { HistoryPanel } from './HistoryPanel.tsx'
 import { MeasurePanel } from './MeasurePanel.tsx'
 import { screenFor } from './mode.ts'
 import type { Screen } from './mode.ts'
-import type { Measurement } from './types.ts'
+import type { Measurement, Remeasure } from './types.ts'
+import { withRemeasure } from './usbRange.ts'
 import { useAntennas, useMeasure } from './useAppState.ts'
 import { useLoad } from './useLoad.ts'
 
@@ -31,6 +32,12 @@ export default function App() {
   // The mode decides tabs, badge and empty texts; see mode.ts and its tests.
   const screen = screenFor(TABS, chosen, health.status === 'ready' ? health.data : null)
   const { tab } = screen
+  // Demo mode has no measure tab, so the card shows the note without the button.
+  const canMeasure = screen.tabs.some((item) => item.id === 'measure')
+  const fillRange = (remeasure: Remeasure) => {
+    measure.setUsbRange((boxes) => withRemeasure(boxes, remeasure))
+    setTab('measure')
+  }
   // No panel before the mode is known, so demo mode never opens the measure tab (and its USB
   // port list). A failed mode answer is shown as an error, not guessed as local.
   const loaded = health.status === 'ready' ? antennas.loaded : health
@@ -49,7 +56,11 @@ export default function App() {
           <MeasurePanel antennas={antennas} measure={measure} />
         )}
         {loaded.status === 'ready' && tab === 'card' && (
-          <CardPage measurement={current} emptyText={screen.empty.card} />
+          <CardPage
+            measurement={current}
+            emptyText={screen.empty.card}
+            onRemeasure={canMeasure ? fillRange : undefined}
+          />
         )}
         {loaded.status === 'ready' && tab === 'history' && (
           <HistoryPanel antennas={antennas} onOpen={show} empty={screen.empty} />

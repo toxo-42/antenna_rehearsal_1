@@ -9,6 +9,7 @@ from src.rule_tools import (
     SHORTEN,
     finding,
     length_caution,
+    length_first,
     length_name,
     target_text,
 )
@@ -86,7 +87,7 @@ def _reactance_evidence(ctx: RuleContext, impedance: Impedance, x_ohm: float | N
 
 def reactance(ctx: RuleContext) -> Diagnosis | None:
     impedance = _impedance(ctx)
-    if impedance is None:
+    if impedance is None or length_first(ctx):  # the length rules give the direction then
         return None
     if not (at_least(impedance.r_ohm, R_LOW_OHM) and at_most(impedance.r_ohm, R_HIGH_OHM)):
         return None

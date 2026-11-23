@@ -45,15 +45,26 @@ ROWS = [
     Row("monopole_12cm.csv", MONOPOLE, 433, "none", others=(622.95, 1833.9)),
     Row("monopole_14cm.csv", MONOPOLE, 535, "narrow", 538.23, -10.30, 0.60, 2.12),
     Row("saa2_patch_2450.csv", PATCH, 2450, "good", 2445.0, -30.35, -0.20, 3.59),
+    Row("monopole_12cm.csv", MONOPOLE, 690, "unmatched", 622.95, -8.59, -9.72, None),
+    Row("monopole_12cm.csv", MONOPOLE, 560, "unmatched", 622.95, -8.59, 11.24, None),
+    Row("monopole_12cm.csv", MONOPOLE, 1834, "narrow", 1833.9, -24.24, -0.01, 5.16),
+    Row("monopole_10cm_weak.csv", MONOPOLE, 750, "none", others=(2132.9, 2237.55)),
 ]
 
+# The resonance near three times the base one is the monopole's own third mode, so the 11.5 and
+# 12 cm files no longer end with other_resonance (the cable advice).
+SHALLOW_KEYS = ["match_unknown", "common_mode"]
 KEY_ORDER = [
     (ROWS[0], "good", ["other_resonance", "good"]),
-    (ROWS[1], "unmatched", ["match_unknown", "common_mode", "other_resonance"]),
-    (ROWS[2], "unmatched", ["match_unknown", "common_mode", "other_resonance"]),
+    (ROWS[1], "unmatched", SHALLOW_KEYS),
+    (ROWS[2], "unmatched", SHALLOW_KEYS),
     (ROWS[3], "none", ["length_far", "other_resonance"]),
-    (ROWS[4], "narrow", ["other_resonance", "narrow"]),
+    (ROWS[4], "narrow", ["narrow"]),  # 1575 and 2631 MHz are its own third and fifth modes
     (ROWS[5], "good", ["good"]),
+    (ROWS[6], "unmatched", ["too_long", "feed_lead", *SHALLOW_KEYS]),
+    (ROWS[7], "unmatched", ["too_short", *SHALLOW_KEYS]),
+    (ROWS[8], "narrow", ["third_mode", "narrow"]),
+    (ROWS[9], "none", ["weak_fundamental"]),
 ]
 
 

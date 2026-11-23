@@ -5,6 +5,8 @@ import { EMPTY_NOTE, changeNoteText } from './changeNote.ts'
 import type { NoteChoice } from './changeNote.ts'
 import { DEFAULT_CAL_MODE } from './labels.ts'
 import type { Antenna, CalMode, Measurement } from './types.ts'
+import { DEFAULT_USB_RANGE } from './usbRange.ts'
+import type { RangeBoxes } from './usbRange.ts'
 import { useLoad } from './useLoad.ts'
 
 /** The stored antennas plus the ones added in this session, and which one is chosen. */
@@ -32,6 +34,8 @@ export type MeasureState = ReturnType<typeof useMeasure>
 export function useMeasure(onMeasured: (measurement: Measurement) => void) {
   const [calMode, setCalMode] = useState<CalMode>(DEFAULT_CAL_MODE)
   const [note, setNote] = useState<NoteChoice>(EMPTY_NOTE)
+  // Kept here so the card's "fill this range" button can reach the USB boxes on another tab.
+  const [usbRange, setUsbRange] = useState<RangeBoxes>(DEFAULT_USB_RANGE)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ErrorInfo | null>(null)
 
@@ -47,5 +51,6 @@ export function useMeasure(onMeasured: (measurement: Measurement) => void) {
       setBusy(false)
     }
   }
-  return { calMode, setCalMode, note, setNote, changeNote: changeNoteText(note), busy, error, run }
+  const changeNote = changeNoteText(note)
+  return { calMode, setCalMode, note, setNote, changeNote, usbRange, setUsbRange, busy, error, run }
 }

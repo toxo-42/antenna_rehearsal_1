@@ -10,6 +10,18 @@ RESONANCE_MIN_DEPTH_DB = 3.0
 RESONANCE_MAX_S11_DB = -6.0
 WEAK_DIP_MIN_DEPTH_DB = 2.0
 CANDIDATE_WINDOW_PCT = 20.0
+# A shallow resonance this far from the target is a length problem first (provisional value).
+LENGTH_FIRST_PCT = 5.0
+# A monopole resonates again near three times its base frequency (measured: 2.75 to 3.17).
+THIRD_MODE_MIN_RATIO = 2.6
+THIRD_MODE_MAX_RATIO = 3.4
+# ... and near five times it (measured: 4.82 to 5.01).
+FIFTH_MODE_MIN_RATIO = 4.5
+FIFTH_MODE_MAX_RATIO = 5.5
+# Fewer measurement steps than this across a resonance: its frequency and depth are unsure.
+MIN_STEPS_ACROSS_RESONANCE = 5.0
+# The range suggested for measuring again: this far to each side of the resonance.
+REMEASURE_SPAN_PCT = 20.0
 REFERENCE_OHM = 50.0
 LOW_FREQ_FRACTION = 0.1
 # S11 above this is a bad measurement. Calibrated readings reach about +0.02 dB and USB
@@ -117,12 +129,14 @@ class Impedance:
 
 @dataclass(frozen=True)
 class Classification:
-    """Stage verdict. `others` are the unselected resonances, nearest to the target first."""
+    """Stage verdict. `others` are the unselected resonances, nearest to the target first.
+    `weak_dips` are the dips too shallow to be resonances, in frequency order."""
 
     stage: Stage
     selected: Resonance | None
     offset_pct: float | None
     others: tuple[Resonance, ...]
+    weak_dips: tuple[Dip, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -145,6 +159,16 @@ class Diagnosis:
 
 
 @dataclass(frozen=True)
+class Remeasure:
+    """A narrower range to measure again, in whole MHz, and the sentence shown with it. Only a
+    suggestion: the student presses measure."""
+
+    start_mhz: int
+    stop_mhz: int
+    note: str
+
+
+@dataclass(frozen=True)
 class Card:
     """The verdict card. Field names match `card` in contract/measurement.json."""
 
@@ -152,3 +176,4 @@ class Card:
     headline: str
     status: tuple[str, ...]
     diagnoses: tuple[Diagnosis, ...]
+    remeasure: Remeasure | None = None

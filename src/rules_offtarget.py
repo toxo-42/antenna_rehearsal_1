@@ -1,4 +1,4 @@
-"""Rules for a matched resonance that misses the target (stage `offtarget`)."""
+"""Rules for a resonance that misses the target: matched (stage `offtarget`), or shallow and far."""
 
 from src.models import Band, Diagnosis, Resonance, RuleContext, Stage
 from src.rule_tools import (
@@ -7,6 +7,7 @@ from src.rule_tools import (
     amount_text,
     finding,
     length_action,
+    length_first,
     length_name,
     target_text,
 )
@@ -20,7 +21,10 @@ def _offtarget_band(ctx: RuleContext) -> Band | None:
 
 
 def _missed(ctx: RuleContext) -> Resonance | None:
-    """The selected resonance when the target lies outside its band; None when it is inside."""
+    """The selected resonance when the target lies outside its band, or when it is shallow and
+    far from the target; None otherwise."""
+    if length_first(ctx):
+        return ctx.classification.selected
     band = _offtarget_band(ctx)
     if band is None or band.contains(ctx.antenna.target_mhz):
         return None
