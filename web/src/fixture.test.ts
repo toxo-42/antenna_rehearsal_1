@@ -36,6 +36,7 @@ test('the fixture has no key that types.ts does not know', () => {
     cal_mode: true,
     measured_at: true,
     change_note: true,
+    length_cm: true,
     resonance_mhz: true,
     s11_db: true,
     bandwidth_pct: true,

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from src.models import (
     CANDIDATE_WINDOW_PCT,
+    EXPECTED_WINDOW_PCT,
     TYPICAL_BANDWIDTH_PCT,
     Antenna,
     Band,
@@ -37,7 +38,13 @@ def classify(sweep: Sweep, antenna: Antenna) -> Classification:
     scan = find_resonances(sweep)
     resonances, weak = scan.resonances, scan.weak_dips
     target = antenna.target_mhz
-    selected = _select(resonances, target)
+    # With a known conductor length the resonance is looked for where that length should give
+    # it: a dip elsewhere (cable, ground plane, a higher mode) is not the antenna's base mode.
+    expected = antenna.expected_mhz
+    if expected is None:
+        selected = _select(resonances, target, CANDIDATE_WINDOW_PCT)
+    else:
+        selected = _select(resonances, expected, EXPECTED_WINDOW_PCT)
     others = tuple(
         sorted(
             (r for r in resonances if r is not selected),
@@ -58,13 +65,16 @@ def _spacing_at(f_mhz: Sequence[float], edge_mhz: float) -> float:
     return f_mhz[upper] - f_mhz[upper - 1]
 
 
-def _select(resonances: Sequence[Resonance], target_mhz: float) -> Resonance | None:
-    """Among resonances near the target, prefer one whose band holds the target, then nearest."""
-    window = target_mhz * CANDIDATE_WINDOW_PCT / 100
-    candidates = [r for r in resonances if at_most(abs(r.f_mhz - target_mhz), window)]
-    in_band = [r for r in candidates if r.band is not None and r.band.contains(target_mhz)]
+def _select(
+    resonances: Sequence[Resonance], center_mhz: float, window_pct: float
+) -> Resonance | None:
+    """Among resonances near the center (the target, or the frequency expected from the length),
+    prefer one whose band holds it, then the nearest."""
+    window = center_mhz * window_pct / 100
+    candidates = [r for r in resonances if at_most(abs(r.f_mhz - center_mhz), window)]
+    in_band = [r for r in candidates if r.band is not None and r.band.contains(center_mhz)]
     pool = in_band or candidates
-    return min(pool, key=lambda r: abs(r.f_mhz - target_mhz), default=None)
+    return min(pool, key=lambda r: abs(r.f_mhz - center_mhz), default=None)
 
 
 def _is_unmatched(case: _Case) -> bool:

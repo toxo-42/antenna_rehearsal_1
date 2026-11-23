@@ -58,6 +58,7 @@ class MeasureInput:
     antenna_id: int
     cal_mode: str
     change_note: str
+    length_cm: float | None = None  # conductor length now, already checked (`checked_length`)
 
 
 @dataclass(frozen=True)
@@ -185,6 +186,10 @@ def measure_csv(db_path: Path, data: bytes, request: MeasureInput) -> Row:
     return _save(db_path, sweep, "csv", antenna, request)
 
 
+COPIED_COLUMNS = ("source", "cal_mode", "measured_at", "change_note", "length_cm",
+                  "resonance_mhz", "s11_db", "bandwidth_pct")  # fmt: skip
+
+
 def get_measurement(db_path: Path, measurement_id: int) -> Row:
     """One measurement in the shape of contract/measurement.json."""
     with store.connect(db_path) as conn:
@@ -197,13 +202,7 @@ def get_measurement(db_path: Path, measurement_id: int) -> Row:
         {
             "id": row["id"],
             "antenna": antenna,
-            "source": row["source"],
-            "cal_mode": row["cal_mode"],
-            "measured_at": row["measured_at"],
-            "change_note": row["change_note"],
-            "resonance_mhz": row["resonance_mhz"],
-            "s11_db": row["s11_db"],
-            "bandwidth_pct": row["bandwidth_pct"],
+            **{key: row[key] for key in COPIED_COLUMNS},
             "sweep": [
                 {"f_mhz": f_mhz, "s11_db": s11_db}
                 for f_mhz, s11_db in zip(sweep.f_mhz, sweep.s11_db, strict=True)
@@ -253,7 +252,9 @@ def _antenna_for(db_path: Path, request: MeasureInput) -> Antenna:
         row = store.get_antenna(conn, request.antenna_id)
     if row is None:
         raise NotFoundError(f"안테나 {request.antenna_id}번이 없습니다.")
-    return Antenna(name=row["name"], kind=AntennaKind(row["kind"]), target_mhz=row["target_mhz"])
+    kind = AntennaKind(row["kind"])  # the length is the monopole's conductor; a patch has none
+    length_cm = request.length_cm if kind is AntennaKind.MONOPOLE else None
+    return Antenna(row["name"], kind, row["target_mhz"], length_cm)
 
 
 def _check_target_in(low: float, high: float, antenna: Antenna) -> None:
@@ -295,4 +296,5 @@ def _new_measurement(
         sweep_json=store.sweep_to_json(sweep),
         card_json=json.dumps(asdict(card), ensure_ascii=False),
         change_note=request.change_note,
+        length_cm=antenna.length_cm,
     )

@@ -4,6 +4,7 @@
 
 - `antennas(id, name, kind, target_mhz)`
 - `measurements(id, antenna_id, measured_at, source, cal_mode, stage, resonance_mhz, s11_db, bandwidth_pct, sweep_json, card_json, change_note)`, 인덱스 `(antenna_id, measured_at)`, `stage`
+- `measurements.length_cm`(REAL, null 가능): 그 측정 때의 모노폴 도체 길이. 학생이 측정 사이에 도체를 자르므로 안테나가 아니라 **측정마다** 저장한다. `POST /api/measurements`는 `length_cm`(수 또는 null), upload는 form 필드 `length_cm`(빈 글이면 미입력)으로 받는다. 0 초과 1000 이하가 아니면 한국어 422이고 저장하지 않는다. 패치 안테나의 측정에는 저장하지 않는다(null). 상세와 목록 응답에 `length_cm`이 들어간다. 이 열이 없는 예전 DB는 `init_db`가 시작할 때 열을 붙이고 기존 행은 null로 둔다
 - 값은 전부 `?` 바인딩. 한 측정은 트랜잭션 하나. `sweep_json`은 `[f_hz, s11_db, re, im]` 목록(re, im은 null 가능)
 - DB 경로는 `create_app(db_path)`의 인자로 받는다(기본은 프로젝트 루트의 `antenna.db`, `app = create_app()`은 유지). sqlite 연결은 요청마다 열고 닫는다(FastAPI는 요청을 여러 스레드에서 처리하므로 연결 하나를 공유하지 않는다)
 - `measured_at`은 서버가 저장할 때 넣는다. 계약 예시와 같은 초 단위 ISO 현지 시각. 선택된 공진이 없으면 `resonance_mhz, s11_db, bandwidth_pct`는 null

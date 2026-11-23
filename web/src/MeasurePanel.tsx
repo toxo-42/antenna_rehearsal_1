@@ -2,6 +2,7 @@ import { AntennaForm } from './AntennaForm.tsx'
 import { ChangeNoteCard } from './ChangeNoteCard.tsx'
 import { EmptyNotice, ErrorNotice } from './Badges.tsx'
 import { antennaText, calModeLabel } from './labels.ts'
+import { LengthCard } from './LengthCard.tsx'
 import { CsvCard, SampleCard } from './MeasureSources.tsx'
 import { CAL_MODES } from './types.ts'
 import { UsbCard } from './UsbCard.tsx'
@@ -17,6 +18,7 @@ const CAL_HINT: Record<CalMode, string> = {
 
 /** Screen 1: choose or add an antenna, choose the calibration state, then measure. */
 export function MeasurePanel({ antennas, measure }: { antennas: Antennas; measure: MeasureState }) {
+  const antenna = antennas.antennas.find((item) => item.id === antennas.antennaId) ?? null
   return (
     <div className="page">
       <header className="page-head">
@@ -34,14 +36,12 @@ export function MeasurePanel({ antennas, measure }: { antennas: Antennas; measur
           <AntennaCard antennas={antennas} />
           <CalModeCard measure={measure} />
           <ChangeNoteCard measure={measure} />
+          {antenna?.kind === 'monopole' && <LengthCard measure={measure} />}
         </div>
         <div className="column">
           <SampleCard antennaId={antennas.antennaId} measure={measure} />
           <CsvCard antennaId={antennas.antennaId} measure={measure} />
-          <UsbCard
-            antenna={antennas.antennas.find((item) => item.id === antennas.antennaId) ?? null}
-            measure={measure}
-          />
+          <UsbCard antenna={antenna} measure={measure} />
         </div>
       </div>
     </div>

@@ -43,7 +43,7 @@ def test_schema_has_tables_and_indexes(db: Path) -> None:
     assert antenna_cols == ["id", "name", "kind", "target_mhz"]
     assert measurement_cols == [
         "id", "antenna_id", "measured_at", "source", "cal_mode", "stage", "resonance_mhz",
-        "s11_db", "bandwidth_pct", "sweep_json", "card_json", "change_note",
+        "s11_db", "bandwidth_pct", "sweep_json", "card_json", "change_note", "length_cm",
     ]  # fmt: skip
     assert ("antenna_id", "measured_at") in indexed
     assert ("stage",) in indexed
@@ -107,7 +107,7 @@ def test_list_is_newest_first_then_highest_id_and_drops_json_columns(db: Path) -
     assert [r["id"] for r in rows] == [later, second, first]
     assert set(rows[0]) == {
         "id", "antenna_id", "measured_at", "source", "cal_mode", "stage", "resonance_mhz",
-        "s11_db", "bandwidth_pct", "change_note",
+        "s11_db", "bandwidth_pct", "change_note", "length_cm",
     }  # fmt: skip
     assert [r["id"] for r in by_antenna] == [second, first]
     assert [r["id"] for r in by_stage] == [second]

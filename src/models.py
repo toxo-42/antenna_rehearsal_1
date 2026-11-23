@@ -10,6 +10,11 @@ RESONANCE_MIN_DEPTH_DB = 3.0
 RESONANCE_MAX_S11_DB = -6.0
 WEAK_DIP_MIN_DEPTH_DB = 2.0
 CANDIDATE_WINDOW_PCT = 20.0
+# Quarter wave in free space: length in cm times frequency in MHz (12 cm -> 625 MHz).
+QUARTER_WAVE_CM_MHZ = 7500.0
+# How far from that expected frequency the base resonance may be (provisional; measured
+# monopoles sit within 8.3 %, and dips of the test jig were seen from 9.6 % outwards).
+EXPECTED_WINDOW_PCT = 10.0
 # A shallow resonance this far from the target is a length problem first (provisional value).
 LENGTH_FIRST_PCT = 5.0
 # A monopole resonates again near three times its base frequency (measured: 2.75 to 3.17).
@@ -66,9 +71,20 @@ TYPICAL_BANDWIDTH_PCT: dict[AntennaKind, float] = {
 
 @dataclass(frozen=True)
 class Antenna:
+    """The antenna as it was measured. `length_cm` is the conductor length at that moment (it
+    changes when the student trims it); None when it was not entered."""
+
     name: str
     kind: AntennaKind
     target_mhz: float
+    length_cm: float | None = None
+
+    @property
+    def expected_mhz(self) -> float | None:
+        """Where a monopole of this length should first resonate (a quarter wave), else None."""
+        if self.kind is not AntennaKind.MONOPOLE or self.length_cm is None:
+            return None
+        return QUARTER_WAVE_CM_MHZ / self.length_cm
 
 
 @dataclass(frozen=True)

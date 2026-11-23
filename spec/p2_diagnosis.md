@@ -26,6 +26,7 @@
 | lossy | none, -10~-3 dB인 점이 30 % 이상, 다른 공진 없음 | 재납땜, 손·금속에서 띄우고 재측정 |
 | length_far | none이고 다른 공진 있음. **목표에 가장 가까운** 공진 사용, ratio = 공진/목표 | ratio < 1이면 줄이기, > 1이면 늘리기. 양 = abs(ratio-1)*100 % |
 | weak_fundamental | **모노폴만**, third_mode가 아니고, 판단 공진(목표 공진, 없으면 length_far가 쓸 공진)보다 낮은 **약한 딥**(p1의 `weak_dips`) 중 `판단 공진 / 그 딥`이 2.6 이상 3.4 이하인 것이 있음. 이때 **length_far는 내지 않는다**(3배 자리 공진으로 길이를 계산하면 "184 % 늘리기" 같은 틀린 안내가 나온다) | 급전부 납땜과 안테나 도체가 곧은지 확인한 뒤 재측정. 길이는 아직 바꾸지 말 것 |
+| missing_fundamental | **모노폴이고 길이를 입력함**, none, 예상 주파수 ±10 % 안에 약한 딥도 없음, 급전 공통 조건이 아님 | 급전부 납땜과 접지 연결을 확인한 뒤 재측정. 길이는 아직 바꾸지 말 것. 단, 예상 주파수가 스윕 범위 밖이면 "예상 공진 N MHz가 들어가도록 측정 범위를 넓혀 재측정" |
 | out_of_range | none, 첫 점 또는 끝 점의 S11이 **모든 내부 점보다 작음**(동점이면 내지 않는다. 평탄한 트레이스는 해당 없음) | 시작·종료 주파수를 넓혀 재측정 |
 | too_short / too_long | (offtarget이고 **목표가 대역 밖**) 또는 **길이 우선 조건**, 공진이 목표보다 높음 / 낮음 | abs(offset_pct) % 늘리기 / 줄이기 |
 | feed_lead | too_long과 같은 조건 | 노출된 급전선을 짧게 |
@@ -42,6 +43,8 @@
 | uncalibrated | cal_mode가 unknown이고 positive_s11이 아님 | 수치는 경향 참고용. 교정된 측정으로 다시 확인 (USB로 받은 값에는 장비의 교정이 반영되지 않는다) |
 
 길이 우선 조건: unmatched **이고** abs(offset_pct) >= 5 % **이고** 공진과 목표의 거리가 측정 간격 한 칸 이상(공진점 양옆 두 간격 중 넓은 쪽. 정확히 한 칸이면 해당). 5 %는 임시값이고 `LENGTH_FIRST_PCT` 상수 하나로 둔다. 이 조건이면 얕은 공진이라도 too_short / too_long(too_long이면 feed_lead도)을 먼저 내고, 정합 점검(r_low, r_high, match_unknown, common_mode)은 그 뒤에 함께 낸다. 방향을 말하는 규칙이 둘이 되지 않게 reactance는 내지 않는다. 목표가 스윕 범위 밖이어도 같다. (이전에는 딥이 -10 dB보다 얕으면 목표에서 10 % 벗어나도 정합 점검만 안내했다)
+
+길이를 입력한 모노폴(p1의 예상 주파수 기준 선택): none이면 다른 자리의 공진으로 길이를 계산하지 않으므로 **length_far를 내지 않는다**. 예상 주파수 ±10 % 안에 약한 딥이 있으면 weak_fundamental(evidence: "길이 L cm의 예상 공진 F MHz 근처에 얕은 딥 … 만 있음", 3배 비는 보지 않는다), 없으면 missing_fundamental(evidence: "길이 L cm의 예상 공진 F MHz 근처(low~high MHz)에 공진이 없음"). 카드 status에는 공진 줄 다음에 "예상 공진 F MHz (도체 길이 L cm)"를 넣고, 공진이 없을 때의 줄은 "예상 주파수 근처에 공진 없음"으로 쓴다. missing_fundamental이 나오면 headline은 "이 길이라면 있어야 할 공진이 보이지 않습니다". 검사: 길이 37.5 cm(예상 200 MHz), 목표 200. 200 MHz에 -4 dB, 400 MHz에 -20 dB → weak_fundamental 하나. 400 MHz 공진만 → missing_fundamental 하나(180~220 MHz). 평탄한 0 dB → feed_fault 하나. 길이 7.5 cm(예상 1000 MHz)인데 스윕이 800 MHz에서 끝남 → 범위를 넓히라는 action. 실측 `monopole_12cm.csv`, 목표 433, 길이 12 → unmatched, too_short(약 44 % 늘리기), match_unknown, common_mode
 
 급전 공통 조건: none **이고** -1 dB보다 큰 점이 90 % 이상 **이고** 다른 공진 없음. 세 가지를 모두 만족한 뒤에만 low_freq_gamma_real로 feed_short / feed_open / feed_fault를 가른다. 크기만 있는 스윕이라도 공통 조건을 만족하지 않으면 feed_fault를 내지 않는다.
 
@@ -76,6 +79,7 @@
 "common_mode":"케이블 바깥면에 전류가 흐르면 케이블도 안테나처럼 동작해서, 손으로 잡거나 위치를 바꾸면 측정값이 달라진다.",
 "third_mode":"목표 근처에서 보인 공진은 기본 공진이 아니라 더 높은 주파수에서 다시 나타난 공진일 수 있다.",
 "weak_fundamental":"모노폴은 기본 공진의 약 3배 주파수에서 다시 공진한다. 급전부 연결이 나쁘거나 도체가 휘면 기본 공진이 얕아져서 3배 자리 공진만 뚜렷하게 보일 수 있다.",
+"missing_fundamental":"모노폴은 도체 길이가 파장의 약 1/4이 되는 주파수에서 공진한다. 그 자리에 공진이 없으면 길이보다 급전부나 접지 연결을 먼저 의심한다.",
 "other_resonance":"안테나가 아닌 케이블이나 접지판도 다른 주파수에서 공진할 수 있다.",
 "narrow":{"monopole":"도체가 가늘면 잘 동작하는 주파수 폭이 좁아진다.",
   "patch":"기판이 얇거나 유전율이 높으면 잘 동작하는 주파수 폭이 좁아진다."},

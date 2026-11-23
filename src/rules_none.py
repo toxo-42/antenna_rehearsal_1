@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 
 from src.impedance import low_freq_gamma_real
 from src.models import (
+    EXPECTED_WINDOW_PCT,
     POSITIVE_S11_DB,
     AntennaKind,
     Diagnosis,
@@ -125,9 +126,51 @@ def weak_base(ctx: RuleContext) -> Dip | None:
     return next((d for d in result.weak_dips if in_third_ratio(judged.f_mhz, d.f_mhz)), None)
 
 
+def expected_window(ctx: RuleContext) -> tuple[float, float] | None:
+    """Where the base resonance should be for the entered length; None without a length."""
+    expected = ctx.antenna.expected_mhz
+    if expected is None:
+        return None
+    half = expected * EXPECTED_WINDOW_PCT / 100
+    return expected - half, expected + half
+
+
+def expected_weak_dip(ctx: RuleContext) -> Dip | None:
+    """The weak dip nearest the expected frequency when no resonance was found there."""
+    window, expected = expected_window(ctx), ctx.antenna.expected_mhz
+    if window is None or expected is None or ctx.classification.stage is not Stage.NONE:
+        return None
+    low, high = window
+    near = [d for d in ctx.classification.weak_dips if at_least(d.f_mhz, low)]
+    near = [d for d in near if at_most(d.f_mhz, high)]
+    return min(near, key=lambda d: abs(d.f_mhz - expected), default=None)
+
+
+def length_text(ctx: RuleContext) -> str:
+    """ "길이 12 cm의 예상 공진 625.00 MHz" for evidence lines; only called with a length."""
+    return f"길이 {ctx.antenna.length_cm:g} cm의 예상 공진 {ctx.antenna.expected_mhz:.2f} MHz"
+
+
+def missing_fundamental(ctx: RuleContext) -> Diagnosis | None:
+    window, expected = expected_window(ctx), ctx.antenna.expected_mhz
+    if window is None or expected is None or ctx.classification.stage is not Stage.NONE:
+        return None
+    if expected_weak_dip(ctx) is not None or has_feed_shape(ctx):
+        return None
+    evidence = f"{length_text(ctx)} 근처({window[0]:.0f}~{window[1]:.0f} MHz)에 공진이 없음"
+    covered = at_least(expected, ctx.sweep.f_mhz[0]) and at_most(expected, ctx.sweep.f_mhz[-1])
+    action = (
+        "급전부 납땜과 접지 연결을 확인한 뒤 재측정. 길이는 아직 바꾸지 말 것"
+        if covered
+        else f"예상 공진 {expected:.0f} MHz가 들어가도록 측정 범위를 넓혀 재측정"
+    )
+    return finding(ctx, "missing_fundamental", "이 길이의 공진이 보이지 않음", evidence, action)
+
+
 def length_far(ctx: RuleContext) -> Diagnosis | None:
     nearest = far_resonance(ctx)
-    if nearest is None or weak_base(ctx) is not None:  # a third mode says nothing about length
+    # A third mode, or a dip away from where this length resonates, says nothing about length.
+    if nearest is None or weak_base(ctx) is not None or expected_window(ctx) is not None:
         return None
     ratio = nearest.f_mhz / ctx.antenna.target_mhz
     verb = SHORTEN if ratio < 1 else LENGTHEN

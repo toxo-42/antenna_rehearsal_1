@@ -110,11 +110,18 @@ export function listSamples(fetchFn: typeof fetch = fetch): Promise<Sample[]> {
   return request('/api/samples', undefined, fetchFn)
 }
 
+/** What the student wrote down for one measurement, sent with every source. */
+export interface MeasureNotes {
+  changeNote: string
+  /** Conductor length now, in cm; null when not entered. */
+  lengthCm: number | null
+}
+
 export function measureSample(
   antennaId: number,
   sample: string,
   calMode: CalMode,
-  changeNote: string,
+  notes: MeasureNotes,
   fetchFn: typeof fetch = fetch,
 ): Promise<Measurement> {
   const body = {
@@ -122,7 +129,8 @@ export function measureSample(
     source: 'synthetic',
     sample,
     cal_mode: calMode,
-    change_note: changeNote,
+    change_note: notes.changeNote,
+    length_cm: notes.lengthCm,
   }
   return request('/api/measurements', postJson(body), fetchFn)
 }
@@ -142,7 +150,7 @@ export function measureUsb(
   antennaId: number,
   range: UsbRange,
   calMode: CalMode,
-  changeNote: string,
+  notes: MeasureNotes,
   fetchFn: typeof fetch = fetch,
 ): Promise<Measurement> {
   const body = {
@@ -153,7 +161,8 @@ export function measureUsb(
     stop_mhz: range.stopMhz,
     points: range.points,
     cal_mode: calMode,
-    change_note: changeNote,
+    change_note: notes.changeNote,
+    length_cm: notes.lengthCm,
   }
   return request('/api/measurements', postJson(body), fetchFn)
 }
@@ -162,14 +171,15 @@ export function uploadCsv(
   antennaId: number,
   file: File,
   calMode: CalMode,
-  changeNote: string,
+  notes: MeasureNotes,
   fetchFn: typeof fetch = fetch,
 ): Promise<Measurement> {
   const form = new FormData()
   form.append('file', file)
   form.append('antenna_id', String(antennaId))
   form.append('cal_mode', calMode)
-  form.append('change_note', changeNote)
+  form.append('change_note', notes.changeNote)
+  if (notes.lengthCm !== null) form.append('length_cm', String(notes.lengthCm))
   return request('/api/measurements/upload', { method: 'POST', body: form }, fetchFn)
 }
 

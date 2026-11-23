@@ -62,6 +62,8 @@ export interface Measurement {
   cal_mode: CalMode
   measured_at: string
   change_note: string
+  /** Conductor length at this measurement, in cm; null when it was not entered. */
+  length_cm: number | null
   resonance_mhz: number | null
   s11_db: number | null
   bandwidth_pct: number | null
@@ -81,6 +83,7 @@ export interface MeasurementRow {
   s11_db: number | null
   bandwidth_pct: number | null
   change_note: string
+  length_cm: number | null
 }
 
 /** `GET /api/compare`. Every number is after minus before; all are null when not comparable. */

@@ -3,7 +3,14 @@
 import math
 
 from src.impedance import impedance_at, reactance_at
-from src.models import AntennaKind, Diagnosis, Impedance, RuleContext, Stage
+from src.models import (
+    QUARTER_WAVE_CM_MHZ,
+    AntennaKind,
+    Diagnosis,
+    Impedance,
+    RuleContext,
+    Stage,
+)
 from src.rule_tools import (
     LENGTHEN,
     SHORTEN,
@@ -17,7 +24,6 @@ from src.tolerance import at_least, at_most
 
 R_LOW_OHM = 30.0
 R_HIGH_OHM = 90.0
-QUARTER_WAVE_CM_MHZ = 7500.0
 RETEST_FINER = "더 촘촘한 간격으로 재측정"
 
 R_LOW_ACTION: dict[AntennaKind, str] = {

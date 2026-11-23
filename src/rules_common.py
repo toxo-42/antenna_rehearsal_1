@@ -17,7 +17,14 @@ from src.rule_tools import (
     length_caution,
     length_name,
 )
-from src.rules_none import far_resonance, has_positive_s11, weak_base
+from src.rules_none import (
+    expected_weak_dip,
+    expected_window,
+    far_resonance,
+    has_positive_s11,
+    length_text,
+    weak_base,
+)
 
 NARROW_ACTION: dict[AntennaKind, str] = {
     AntennaKind.MONOPOLE: "안테나 도체를 굵게",
@@ -49,7 +56,23 @@ def third_mode(ctx: RuleContext) -> Diagnosis | None:
     return finding(ctx, "third_mode", "3배 모드 공진일 수 있음", evidence, action)
 
 
+WEAK_ACTION = "급전부 납땜과 안테나 도체가 곧은지 확인한 뒤 재측정. 길이는 아직 바꾸지 말 것"
+
+
+def _weak_at_expected(ctx: RuleContext) -> Diagnosis | None:
+    """Only a weak dip where the entered length should resonate."""
+    dip = expected_weak_dip(ctx)
+    if dip is None:
+        return None
+    evidence = (
+        f"{length_text(ctx)} 근처에 얕은 딥 {dip.f_mhz:.2f} MHz (S11 {dip.s11_db:.2f} dB)만 있음"
+    )
+    return finding(ctx, "weak_fundamental", "기본 공진이 약함", evidence, WEAK_ACTION)
+
+
 def weak_fundamental(ctx: RuleContext) -> Diagnosis | None:
+    if expected_window(ctx) is not None:
+        return _weak_at_expected(ctx)
     result = ctx.classification
     judged, base = result.selected or far_resonance(ctx), weak_base(ctx)
     if judged is None or base is None or third_mode_base(ctx) is not None:
@@ -59,8 +82,7 @@ def weak_fundamental(ctx: RuleContext) -> Diagnosis | None:
         f"공진 {judged.f_mhz:.2f} MHz는 얕은 딥 {base.f_mhz:.2f} MHz "
         f"(S11 {base.s11_db:.2f} dB)의 {ratio:.2f}배"
     )
-    action = "급전부 납땜과 안테나 도체가 곧은지 확인한 뒤 재측정. 길이는 아직 바꾸지 말 것"
-    return finding(ctx, "weak_fundamental", "기본 공진이 약함", evidence, action)
+    return finding(ctx, "weak_fundamental", "기본 공진이 약함", evidence, WEAK_ACTION)
 
 
 def _is_own_higher_mode(ctx: RuleContext, other: Resonance) -> bool:

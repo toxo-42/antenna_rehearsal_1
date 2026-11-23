@@ -20,11 +20,11 @@ MONOPOLE = AntennaKind.MONOPOLE
 PATCH = AntennaKind.PATCH
 
 
-def test_there_are_23_guides_numbered_in_table_order() -> None:
-    assert len(GUIDE_KEYS) == 23
+def test_there_are_24_guides_numbered_in_table_order() -> None:
+    assert len(GUIDE_KEYS) == 24
     assert GUIDE_KEYS == tuple(GUIDES)
     assert key_for(1) == "positive_s11"
-    assert key_for(23) == "uncalibrated"
+    assert key_for(24) == "uncalibrated"
     assert key_for(0) is None
 
 
@@ -47,14 +47,14 @@ def test_the_prompt_lists_the_guides_for_the_antenna_kind(kind: AntennaKind) -> 
 
 @pytest.mark.parametrize(
     ("answer", "expected"),
-    [("7", 7), (" 12\n", 12), ("번호: 3", 3), ("0", 0), ("23", 23), ("05", 5)],
+    [("7", 7), (" 12\n", 12), ("번호: 3", 3), ("0", 0), ("24", 24), ("05", 5)],
 )
 def test_one_number_in_range_is_used(answer: str, expected: int) -> None:
     assert parse_choice(answer) == expected
 
 
 @pytest.mark.parametrize(
-    "answer", ["", "3, 5", "24", "100", "관련 설명이 없습니다", "1 2", "-1", "-0", "번호: -5"]
+    "answer", ["", "3, 5", "25", "100", "관련 설명이 없습니다", "1 2", "-1", "-0", "번호: -5"]
 )
 def test_anything_else_is_a_failed_link(answer: str) -> None:
     assert parse_choice(answer) is None

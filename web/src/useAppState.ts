@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { describeError, listAntennas } from './api.ts'
-import type { ErrorInfo } from './api.ts'
+import type { ErrorInfo, MeasureNotes } from './api.ts'
+import { lengthValue } from './lengthInput.ts'
 import { EMPTY_NOTE, changeNoteText } from './changeNote.ts'
 import type { NoteChoice } from './changeNote.ts'
 import { DEFAULT_CAL_MODE } from './labels.ts'
@@ -36,6 +37,9 @@ export function useMeasure(onMeasured: (measurement: Measurement) => void) {
   const [note, setNote] = useState<NoteChoice>(EMPTY_NOTE)
   // Kept here so the card's "fill this range" button can reach the USB boxes on another tab.
   const [usbRange, setUsbRange] = useState<RangeBoxes>(DEFAULT_USB_RANGE)
+  // The conductor length as typed. Unlike the note it stays for the next measurement: the
+  // student edits it only after trimming the conductor.
+  const [length, setLength] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ErrorInfo | null>(null)
 
@@ -52,5 +56,7 @@ export function useMeasure(onMeasured: (measurement: Measurement) => void) {
     }
   }
   const changeNote = changeNoteText(note)
-  return { calMode, setCalMode, note, setNote, changeNote, usbRange, setUsbRange, busy, error, run }
+  const notes: MeasureNotes = { changeNote, lengthCm: lengthValue(length) }
+  const boxes = { note, setNote, length, setLength, usbRange, setUsbRange }
+  return { calMode, setCalMode, ...boxes, changeNote, notes, busy, error, run }
 }

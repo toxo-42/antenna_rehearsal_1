@@ -25,7 +25,7 @@ export function UsbCard({ antenna, measure }: UsbProps) {
     antenna !== null &&
     chosen !== null &&
     measure.run(() =>
-      measureUsb(antenna.id, { port: chosen, startMhz, stopMhz, points }, measure.calMode, measure.changeNote),
+      measureUsb(antenna.id, { port: chosen, startMhz, stopMhz, points }, measure.calMode, measure.notes),
     )
   return (
     <section className="card">

@@ -40,6 +40,7 @@ RULE_ORDER = [
     "lossy",
     "length_far",
     "weak_fundamental",
+    "missing_fundamental",
     "out_of_range",
     "too_short",
     "too_long",

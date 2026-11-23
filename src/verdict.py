@@ -22,6 +22,7 @@ HEADLINES: dict[CardStage, str] = {
 # A diagnosis that makes the stage sentence misleading replaces it. The stage itself stays.
 HEADLINE_FOR_KEY: dict[str, str] = {
     "band_edge": "목표가 대역 끝에 가까워 이 측정 간격으로는 확정할 수 없습니다",
+    "missing_fundamental": "이 길이라면 있어야 할 공진이 보이지 않습니다",
 }
 LENGTH_FIRST_HEADLINE = "공진이 목표 주파수에서 벗어나 있고 정합도 얕습니다"
 CAL_TEXT: dict[CalMode, str] = {
@@ -52,10 +53,18 @@ def _card_stage(ctx: RuleContext) -> CardStage:
 def _resonance_line(ctx: RuleContext) -> str:
     result = ctx.classification
     if result.selected is None or result.offset_pct is None:
-        return "목표 근처에 공진 없음"
+        where = "목표" if ctx.antenna.expected_mhz is None else "예상 주파수"
+        return f"{where} 근처에 공진 없음"
     f_mhz = result.selected.f_mhz
     offset_mhz = f_mhz - ctx.antenna.target_mhz
     return f"공진 {f_mhz:.2f} MHz (목표 {offset_mhz:+.2f} MHz, {result.offset_pct:+.2f} %)"
+
+
+def _expected_line(ctx: RuleContext) -> str | None:
+    expected = ctx.antenna.expected_mhz
+    if expected is None:
+        return None
+    return f"예상 공진 {expected:.2f} MHz (도체 길이 {ctx.antenna.length_cm:g} cm)"
 
 
 def _depth_line(ctx: RuleContext) -> str | None:
@@ -100,6 +109,7 @@ def _spacing_line(ctx: RuleContext) -> str | None:
 
 STATUS_LINES: tuple[StatusLine, ...] = (
     _resonance_line,
+    _expected_line,
     _depth_line,
     _band_line,
     _impedance_line,

@@ -10,7 +10,7 @@ const BOX: PlotBox = { left: 0, top: 0, width: 300, height: 100 }
 function rowOf(id: number, measured_at: string, resonance_mhz: number | null): MeasurementRow {
   return {
     id, antenna_id: 1, measured_at, source: 'synthetic', cal_mode: 'vna', stage: 'good',
-    resonance_mhz, s11_db: null, bandwidth_pct: null, change_note: '',
+    resonance_mhz, s11_db: null, bandwidth_pct: null, change_note: '', length_cm: null,
   }
 }
 

@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS measurements (
     bandwidth_pct REAL,
     sweep_json TEXT NOT NULL,
     card_json TEXT NOT NULL,
-    change_note TEXT NOT NULL
+    change_note TEXT NOT NULL,
+    length_cm REAL
 );
 CREATE INDEX IF NOT EXISTS measurements_antenna_time ON measurements (antenna_id, measured_at);
 CREATE INDEX IF NOT EXISTS measurements_stage ON measurements (stage);
@@ -41,8 +42,10 @@ CREATE INDEX IF NOT EXISTS measurements_stage ON measurements (stage);
 
 LIST_COLUMNS = (
     "id, antenna_id, measured_at, source, cal_mode, stage, "
-    "resonance_mhz, s11_db, bandwidth_pct, change_note"
+    "resonance_mhz, s11_db, bandwidth_pct, change_note, length_cm"
 )
+# Columns added after the first release: a database made before them gets them on start.
+ADDED_COLUMNS = {"length_cm": "REAL"}
 
 
 @dataclass(frozen=True)
@@ -60,6 +63,7 @@ class NewMeasurement:
     sweep_json: str
     card_json: str
     change_note: str
+    length_cm: float | None = None
 
 
 @dataclass(frozen=True)
@@ -71,9 +75,13 @@ class MeasurementQuery:
 
 
 def init_db(db_path: Path) -> None:
-    """Create the tables and indexes if they are missing."""
+    """Create the tables and indexes if they are missing, and add the newer columns."""
     with connect(db_path) as conn:
         conn.executescript(SCHEMA)
+        have = {row["name"] for row in conn.execute("PRAGMA table_info(measurements)")}
+        for name, kind in ADDED_COLUMNS.items():
+            if name not in have:
+                conn.execute(f"ALTER TABLE measurements ADD COLUMN {name} {kind}")
 
 
 @contextmanager

@@ -18,7 +18,7 @@ export function SampleCard({ antennaId, measure }: SourceProps) {
   const start = () =>
     antennaId !== null &&
     sample !== null &&
-    measure.run(() => measureSample(antennaId, sample, measure.calMode, measure.changeNote))
+    measure.run(() => measureSample(antennaId, sample, measure.calMode, measure.notes))
   return (
     <section className="card">
       <h2>
@@ -63,7 +63,7 @@ export function CsvCard({ antennaId, measure }: SourceProps) {
   const start = () =>
     antennaId !== null &&
     file !== null &&
-    measure.run(() => uploadCsv(antennaId, file, measure.calMode, measure.changeNote))
+    measure.run(() => uploadCsv(antennaId, file, measure.calMode, measure.notes))
   return (
     <section className="card">
       <h2>

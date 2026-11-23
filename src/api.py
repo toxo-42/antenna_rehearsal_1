@@ -1,6 +1,7 @@
 """HTTP routes. They only translate between HTTP and `service`; all rules live in `service`."""
 
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -12,6 +13,7 @@ from pydantic import BaseModel, StrictFloat, StrictInt
 from starlette.exceptions import HTTPException
 
 from src import assist, compare, saa2, service
+from src.length import check_length, parse_length
 
 router = APIRouter(prefix="/api")
 
@@ -40,6 +42,7 @@ class MeasurementBody(BaseModel):
     sample: str | None = None
     cal_mode: str
     change_note: str = ""
+    length_cm: StrictFloat | None = None  # conductor length now; None when not entered
     port: str | None = None  # source = usb only, with the three below
     start_mhz: StrictFloat | None = None
     stop_mhz: StrictFloat | None = None
@@ -136,9 +139,18 @@ def device_screen(request: Request, port: str | None = None) -> Response:
     return Response(content=png, media_type="image/png")
 
 
+def _checked[T](check: Callable[[T], float | None], value: T) -> float | None:
+    """The conductor length through its check; a bad value becomes a Korean 422."""
+    try:
+        return check(value)
+    except ValueError as error:
+        raise service.InputError(str(error)) from None
+
+
 @router.post("/measurements", dependencies=WRITABLE)
 def create_measurement(request: Request, body: MeasurementBody) -> dict[str, Any]:
-    measure = service.MeasureInput(body.antenna_id, body.cal_mode, body.change_note)
+    length_cm = _checked(check_length, body.length_cm)
+    measure = service.MeasureInput(body.antenna_id, body.cal_mode, body.change_note, length_cm)
     if body.source == "usb":
         usb = service.UsbInput(body.port, body.start_mhz, body.stop_mhz, body.points)
         source = service.usb_source(usb, request.app.state.serial_opener)
@@ -147,16 +159,24 @@ def create_measurement(request: Request, body: MeasurementBody) -> dict[str, Any
     return service.measure(_db(request), synthetic, measure)
 
 
+def _upload_fields(
+    antenna_id: Annotated[int, Form()],
+    cal_mode: Annotated[str, Form()],
+    change_note: Annotated[str, Form()] = "",
+    length_cm: Annotated[str, Form()] = "",  # blank means not entered
+) -> service.MeasureInput:
+    """The form fields sent next to an uploaded file."""
+    length = _checked(parse_length, length_cm)
+    return service.MeasureInput(antenna_id, cal_mode, change_note, length)
+
+
 @router.post("/measurements/upload", dependencies=WRITABLE)
 def upload_measurement(
     request: Request,
     file: Annotated[UploadFile, File()],
-    antenna_id: Annotated[int, Form()],
-    cal_mode: Annotated[str, Form()],
-    change_note: Annotated[str, Form()] = "",
+    measure: Annotated[service.MeasureInput, Depends(_upload_fields)],
 ) -> dict[str, Any]:
     data = file.file.read(service.MAX_UPLOAD_BYTES + 1)
-    measure = service.MeasureInput(antenna_id, cal_mode, change_note)
     return service.measure_csv(_db(request), data, measure)
 
 
