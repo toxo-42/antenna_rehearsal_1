@@ -2,9 +2,9 @@
 
 `src/store.py`(표준 `sqlite3`), `sources.py`, `service.py`, `api.py`를 만들어 줘. `app.py`는 조립만 한다.
 
-- `antennas(id, name, kind, target_mhz)`
+- `antennas(id, name, kind, target_mhz)`. 두 표의 `id`는 `INTEGER PRIMARY KEY AUTOINCREMENT`다(지운 id를 다시 쓰지 않는다. 다시 쓰면 열려 있던 화면이 옛 id로 새 안테나를 고치거나 지울 수 있다). 가장 최근 안테나를 지우고 새로 추가하면 다른 id가 나오는지 테스트한다(측정도 같다)
 - `measurements(id, antenna_id, measured_at, source, cal_mode, stage, resonance_mhz, s11_db, bandwidth_pct, sweep_json, card_json, change_note)`, 인덱스 `(antenna_id, measured_at)`, `stage`
-- `measurements.length_cm`(REAL, null 가능): 그 측정 때의 모노폴 도체 길이. 학생이 측정 사이에 도체를 자르므로 안테나가 아니라 **측정마다** 저장한다. `POST /api/measurements`는 `length_cm`(수 또는 null), upload는 form 필드 `length_cm`(빈 글이면 미입력)으로 받는다. 0 초과 1000 이하가 아니면 한국어 422이고 저장하지 않는다. 패치 안테나의 측정에는 저장하지 않는다(null). 상세와 목록 응답에 `length_cm`이 들어간다. 이 열이 없는 예전 DB는 `init_db`가 시작할 때 열을 붙이고 기존 행은 null로 둔다
+- `measurements.length_cm`(REAL, null 가능): 그 측정 때의 모노폴 도체 길이. 학생이 측정 사이에 도체를 자르므로 안테나가 아니라 **측정마다** 저장한다. `POST /api/measurements`는 `length_cm`(수 또는 null), upload는 form 필드 `length_cm`(빈 글이면 미입력)으로 받는다. 0.1 이상 1000 이하가 아니면 한국어 422이고 저장하지 않는다(아주 작은 값은 예상 주파수가 무한대가 되어 카드에 `inf`가 나온다). form의 글은 `[0-9]+(\.[0-9]+)?` 꼴만 받는다("1e3", "1_0", 전각 숫자는 422). form의 `antenna_id`도 정수 글(`-?[0-9]+`)만 받는다("1.0", "+1", 빈칸이 낀 글은 422. 음수는 없는 id라서 404). 패치 안테나의 측정에는 저장하지 않는다(null). 상세와 목록 응답에 `length_cm`이 들어간다. 이 열이 없는 예전 DB는 `init_db`가 시작할 때 열을 붙이고 기존 행은 null로 둔다
 - 값은 전부 `?` 바인딩. 한 측정은 트랜잭션 하나. `sweep_json`은 `[f_hz, s11_db, re, im]` 목록(re, im은 null 가능)
 - DB 경로는 `create_app(db_path)`의 인자로 받는다(기본은 프로젝트 루트의 `antenna.db`, `app = create_app()`은 유지). sqlite 연결은 요청마다 열고 닫는다(FastAPI는 요청을 여러 스레드에서 처리하므로 연결 하나를 공유하지 않는다)
 - `measured_at`은 서버가 저장할 때 넣는다. 계약 예시와 같은 초 단위 ISO 현지 시각. 선택된 공진이 없으면 `resonance_mhz, s11_db, bandwidth_pct`는 null
@@ -27,6 +27,8 @@
 - 업로드한 파일은 UTF-8(BOM 허용)로 읽는다. 읽을 수 없으면 422, 2 MB를 넘으면 413(정확히 2 MB는 받는다). multipart 형식이 깨진 요청도 한국어 422
 - 생성 요청은 200을 돌려준다. `change_note`는 생략할 수 있고 생략하면 `""`
 - 목록: `limit`이 200을 넘거나 `offset`이 음수면 422. 없는 `antenna_id`로 거르면 404가 아니라 빈 배열
+- UTF-8로 바꿀 수 없는 글(짝 없는 서로게이트 `\ud800`)이 이름, 메모 등 글 필드에 오면 422이고 저장하지 않는다(그대로 두면 500)
+- 저장하는 순간 안테나가 없으면(측정하는 동안 삭제됨) 404 "안테나 N번이 없습니다. 측정하는 동안 삭제되어 저장하지 않았습니다."이고 아무것도 저장하지 않는다
 - 숫자 필드는 엄격하게 받는다. JSON `true`나 `"1"`을 `antenna_id`, `target_mhz`로 받지 않는다(422). SQLite 정수 범위를 넘는 id는 없는 id로 본다(404, 500이 아님)
 
 (이름 수정, 삭제, 관리용 요약, 판정 기준 API는 p4b에서 만든다.)

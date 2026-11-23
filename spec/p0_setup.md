@@ -10,7 +10,7 @@
 ```json
 {
   "id": 1, "antenna": {"id": 1, "name": "모노폴 A", "kind": "monopole", "target_mhz": 433},
-  "source": "synthetic", "cal_mode": "vna", "measured_at": "2026-11-26T15:00:00", "change_note": "",
+  "source": "synthetic", "cal_mode": "vna", "measured_at": "2026-11-26T15:00:00", "change_note": "", "length_cm": null,
   "resonance_mhz": 381.25, "s11_db": -25.21, "bandwidth_pct": 13.89,
   "sweep": [{"f_mhz": 10.0, "s11_db": -0.01}],
   "card": {
@@ -26,11 +26,12 @@
     "diagnoses": [
       {"key": "too_long", "title": "안테나 도체가 김", "evidence": "공진 381.25 MHz, 목표 433 MHz", "action": "안테나 도체를 약 12 % 줄이는 것이 초기 추정. 한 번에 절반씩, 자르기 전에 다시 측정", "guide": "도체가 길면 공진 주파수가 목표보다 낮아진다."},
       {"key": "feed_lead", "title": "급전부의 노출된 선이 김", "evidence": "공진 381.25 MHz, 목표 433 MHz", "action": "노출된 급전선을 짧게", "guide": "급전부의 노출된 선이 길거나 납땜 덩어리가 크면 공진 주파수가 낮아진다."}
-    ]
+    ],
+    "remeasure": null
   }
 }
 ```
-(합성 샘플 `offtarget_low`를 `cal_mode = vna`로 판정한 카드와 같다. p2의 출력이 이 `card`와 글자까지 같은지 p2에서 검사한다. `resonance_mhz, s11_db, bandwidth_pct`는 화면이 그래프에 공진을 표시할 때 쓰는 숫자이고, 선택된 공진이 없으면 `null`이다. `sweep`은 모양만 보이는 1점짜리 예시다)
+(합성 샘플 `offtarget_low`를 `cal_mode = vna`로 판정한 카드와 같다. p2의 출력이 이 `card`와 글자까지 같은지 p2에서 검사한다. `resonance_mhz, s11_db, bandwidth_pct`는 화면이 그래프에 공진을 표시할 때 쓰는 숫자이고, 선택된 공진이 없으면 `null`이다. `sweep`은 모양만 보이는 1점짜리 예시다. `length_cm`은 측정 때 입력한 모노폴 도체 길이이고 입력하지 않았으면 `null`(p3), `card.remeasure`는 재측정 안내이고 없으면 `null`, 있으면 `{start_mhz, stop_mhz, note}`(p2))
 
 5. `.claude/settings.json`: `{"model": "opus"}`만 넣는다. 이 폴더에서 여는 세션이 구현용 모델로 시작하게 하는 설정이고, 커밋에 포함한다
 6. `tests/test_architecture.py`: CLAUDE.md의 구조 규칙을 검사하는 테스트. `ast`로 `app.py`와 `src/*.py`를 읽어 ① 파일 300줄 이하 ② 함수 40줄 이하 ③ 인자 5개 이하(self 제외) ④ `src/`가 `app`을 import하지 않음 ⑤ `src/` 모듈 사이에 순환 import 없음 ⑥ `src/` 하위 폴더에 `.py` 파일 없음을 확인한다. `src/`가 비어 있으면 무조건 통과하므로, 검사기마다 임시 파일로 만든 위반 예시를 실제로 잡는지 확인하는 테스트도 둔다. 이후 단계에서 이 테스트의 한도를 늘리거나 예외를 추가하지 않는다
