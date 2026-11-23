@@ -43,7 +43,8 @@ def test_third_mode_applies_in_any_stage_with_a_selected_resonance() -> None:
     ant = antenna(610.0)  # outside the 595..605 MHz band
     assert context(two_dips(600.0), ant).classification.stage is Stage.OFFTARGET
 
-    assert keys(two_dips(600.0), ant) == ["too_long", "feed_lead", "third_mode"]
+    # too_long and feed_lead would match here, but a third mode holds the length rules back.
+    assert keys(two_dips(600.0), ant) == ["third_mode"]
 
 
 def test_third_mode_leaves_out_other_resonance_even_with_more_resonances() -> None:

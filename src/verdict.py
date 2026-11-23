@@ -4,7 +4,7 @@ import math
 from collections.abc import Callable
 from itertools import pairwise
 
-from src.diagnosis import context_for, diagnose
+from src.diagnosis import HOLDS_LENGTH, context_for, diagnose
 from src.impedance import impedance_at
 from src.models import Antenna, CalMode, Card, CardStage, RuleContext, Sweep
 from src.rule_tools import length_first
@@ -37,11 +37,22 @@ def build_card(sweep: Sweep, antenna: Antenna, cal_mode: CalMode) -> Card:
     """Judge one sweep for one antenna and return the card shown to the student."""
     ctx = context_for(sweep, antenna, cal_mode)
     stage, diagnoses = _card_stage(ctx), diagnose(ctx)
-    special = (HEADLINE_FOR_KEY[d.key] for d in diagnoses if d.key in HEADLINE_FOR_KEY)
-    usual = LENGTH_FIRST_HEADLINE if length_first(ctx) else HEADLINES[stage]
-    headline = next(special, usual)
+    headline = _headline(ctx, stage, {d.key for d in diagnoses})
     status = tuple(text for line in STATUS_LINES if (text := line(ctx)) is not None)
     return Card(stage, headline, status, diagnoses, remeasure_range(ctx))
+
+
+def _headline(ctx: RuleContext, stage: CardStage, keys: set[str]) -> str:
+    """The stage sentence, unless a diagnosis replaces it or the length comes first. An invalid
+    sweep always keeps its own sentence, and a held length never gets the length-first one."""
+    if stage is CardStage.INVALID:
+        return HEADLINES[stage]
+    special = next((text for key, text in HEADLINE_FOR_KEY.items() if key in keys), None)
+    if special is not None:
+        return special
+    if length_first(ctx) and not keys & HOLDS_LENGTH:
+        return LENGTH_FIRST_HEADLINE
+    return HEADLINES[stage]
 
 
 def _card_stage(ctx: RuleContext) -> CardStage:

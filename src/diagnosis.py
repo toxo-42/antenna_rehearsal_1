@@ -55,6 +55,10 @@ ONLY_ALONE = "positive_s11"
 HIDES_OUT_OF_RANGE = frozenset({"feed_short", "feed_open", "feed_fault", "lossy"})
 HIDDEN_BY_THEM = "out_of_range"
 NOT_A_FINDING = "uncalibrated"
+# These say the length must not be judged from this resonance yet, so the rules that give a
+# length direction (or a fix for a low resonance) are left out of the same card.
+HOLDS_LENGTH = frozenset({"third_mode", "weak_fundamental"})
+HELD_BY_THEM = frozenset({"too_short", "too_long", "feed_lead", "reactance"})
 
 
 def context_for(sweep: Sweep, antenna: Antenna, cal_mode: CalMode) -> RuleContext:
@@ -71,12 +75,14 @@ def diagnose(ctx: RuleContext) -> tuple[Diagnosis, ...]:
 
 
 def _resolve(ctx: RuleContext, found: tuple[Diagnosis, ...]) -> tuple[Diagnosis, ...]:
-    """The only place that looks at the result list: two exclusive rules and one fallback."""
+    """The only place that looks at the result list: three exclusive rules and one fallback."""
     keys = {result.key for result in found}
     if ONLY_ALONE in keys:
         return tuple(result for result in found if result.key == ONLY_ALONE)
     if keys & HIDES_OUT_OF_RANGE:
         found = tuple(result for result in found if result.key != HIDDEN_BY_THEM)
+    if keys & HOLDS_LENGTH:
+        found = tuple(result for result in found if result.key not in HELD_BY_THEM)
     if all(result.key == NOT_A_FINDING for result in found):
         found = (no_resonance(ctx), *found)
     return found

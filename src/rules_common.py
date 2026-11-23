@@ -34,9 +34,12 @@ NARROW_ACTION: dict[AntennaKind, str] = {
 
 def third_mode_base(ctx: RuleContext) -> Resonance | None:
     """The lower resonance (matched or shallow) that makes the selected one look like a
-    monopole's third mode."""
+    monopole's third mode. None with a conductor length: the selected resonance was then picked
+    because it sits where that length first resonates."""
     selected = ctx.classification.selected
     if ctx.antenna.kind is not AntennaKind.MONOPOLE or selected is None:
+        return None
+    if ctx.antenna.expected_mhz is not None:
         return None
     others = ctx.classification.others
     return next((r for r in others if in_third_ratio(selected.f_mhz, r.f_mhz)), None)
@@ -87,10 +90,11 @@ def weak_fundamental(ctx: RuleContext) -> Diagnosis | None:
 
 def _is_own_higher_mode(ctx: RuleContext, other: Resonance) -> bool:
     """True when `other` sits about three or five times above the monopole's base (the selected
-    resonance, or the weak dip when none is selected): its own higher mode, not a cable."""
+    resonance, else the weak dip at the frequency expected from the length, else the weak dip a
+    third of the judged resonance): its own higher mode, not a cable."""
     if ctx.antenna.kind is not AntennaKind.MONOPOLE:
         return False
-    base = ctx.classification.selected or weak_base(ctx)
+    base = ctx.classification.selected or expected_weak_dip(ctx) or weak_base(ctx)
     if base is None:
         return False
     return in_third_ratio(other.f_mhz, base.f_mhz) or in_fifth_ratio(other.f_mhz, base.f_mhz)
