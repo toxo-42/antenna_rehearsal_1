@@ -212,8 +212,8 @@ def test_parts_default_to_the_contest_model_on_localhost() -> None:
 
     assert isinstance(parts.explainer, OllamaExplainer)
     assert isinstance(parts.router, OllamaRouter)
-    assert (parts.explainer.model, parts.explainer.base_url) == ("qwen3.5:4b", DEFAULT_BASE_URL)
-    assert (parts.router.model, parts.router.base_url) == ("qwen3.5:4b", DEFAULT_BASE_URL)
+    assert (parts.explainer.model, parts.explainer.base_url) == ("qwen3.5:9b", DEFAULT_BASE_URL)
+    assert (parts.router.model, parts.router.base_url) == ("qwen3.5:9b", DEFAULT_BASE_URL)
     assert DEFAULT_BASE_URL == "http://127.0.0.1:11434"
 
 
@@ -225,8 +225,8 @@ def test_an_empty_model_turns_both_off() -> None:
 
 
 def test_explain_off_keeps_the_router() -> None:
-    parts = parts_from_env({"OLLAMA_MODEL": "qwen3.5:9b", "OLLAMA_EXPLAIN": "off"})
+    parts = parts_from_env({"OLLAMA_MODEL": "qwen3.5:4b", "OLLAMA_EXPLAIN": "off"})
 
     assert isinstance(parts.explainer, NoExplainer)
     assert isinstance(parts.router, OllamaRouter)
-    assert parts.router.model == "qwen3.5:9b"
+    assert parts.router.model == "qwen3.5:4b"

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "qwen3.5:4b"
+DEFAULT_MODEL = "qwen3.5:9b"
 KEEP_ALIVE = "10m"
 # No proxy, whatever HTTP_PROXY or the system says: the request must stay on this PC.
 _DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))

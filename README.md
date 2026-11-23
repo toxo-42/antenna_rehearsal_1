@@ -65,9 +65,9 @@ npm --prefix web run lint
 
 | 이름 | 값 | 동작 |
 |---|---|---|
-| `OLLAMA_MODEL` | 설정 안 함 | 기본 모델 `qwen3.5:4b`로 AI 설명과 질문 연결을 켭니다 |
+| `OLLAMA_MODEL` | 설정 안 함 | 기본 모델 `qwen3.5:9b`로 AI 설명과 질문 연결을 켭니다 |
 | | 빈 값 (`OLLAMA_MODEL=`) | AI 설명과 질문 연결을 모두 끕니다 |
-| | 모델 이름 (예: `qwen3.5:9b`) | 그 모델을 씁니다 |
+| | 모델 이름 (예: `qwen3.5:4b`) | 그 모델을 씁니다 |
 | `OLLAMA_EXPLAIN` | `off` | AI 설명 버튼만 끕니다(질문 연결은 유지) |
 | `APP_MODE` | 설정 안 함 또는 `local` | 보통 모드. `antenna.db`를 씁니다 |
 | | `demo` | 시연 모드. `demo.db`의 측정을 화면과 API로 볼 수만 있습니다(아래 참고) |
@@ -76,7 +76,7 @@ macOS(zsh)에서는 명령 앞에 붙입니다.
 
 ```sh
 OLLAMA_MODEL= uv run uvicorn app:app --port 8000
-OLLAMA_MODEL=qwen3.5:9b OLLAMA_EXPLAIN=off uv run uvicorn app:app --port 8000
+OLLAMA_MODEL=qwen3.5:4b OLLAMA_EXPLAIN=off uv run uvicorn app:app --port 8000
 ```
 
 Windows에서 환경 변수를 주는 방법은 아직 확인하지 않아 적지 않았습니다.
@@ -86,7 +86,7 @@ Windows에서 환경 변수를 주는 방법은 아직 확인하지 않아 적�
 ### Ollama (선택)
 
 ```sh
-ollama pull qwen3.5:4b
+ollama pull qwen3.5:9b
 ```
 
 Ollama 요청은 이 PC의 `127.0.0.1:11434`로만 보냅니다. `HTTP_PROXY` 같은 프록시 설정이 있어도 프록시를 거치지 않습니다(`tests/test_ollama.py`).
