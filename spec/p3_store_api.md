@@ -20,11 +20,6 @@
 | POST | `/api/measurements` (`antenna_id, source, sample?, cal_mode, change_note`) |
 | POST | `/api/measurements/upload` (multipart: CSV 파일과 `antenna_id, cal_mode, change_note`. 2 MB 제한) |
 | GET | `/api/measurements?antenna_id&stage&limit&offset` |
-| GET | `/api/antennas/overview` (관리 화면용. 안테나마다 `measurement_count`, `last_measured_at`, `last_stage`, `last_resonance_mhz`. 측정이 없으면 0과 null) |
-| PATCH | `/api/antennas/{id}` (`name`만 받는다. 다른 필드가 있으면 무시하지 않고 422. 빈 이름 422) |
-| DELETE | `/api/antennas/{id}` (딸린 측정까지 한 트랜잭션으로 지우고 `{"deleted_measurements": n}`) |
-| DELETE | `/api/measurements/{id}` (그 한 건만 지운다) |
-| GET | `/api/criteria?kind` (stage마다 기준 문장 하나. `models.py`의 상수로 만든다(`src/criteria.py`). 모르는 `kind`는 422) |
 | GET | `/api/measurements/{id}` (`contract/measurement.json` 형태. `resonance_mhz, s11_db, bandwidth_pct`는 저장한 열의 값 그대로이고 공진이 없으면 `null`) |
 
 - `POST /api/measurements`는 이번에는 `source = synthetic`만 받고 `sample`이 필수다. 다른 source 값과 모르는 sample 이름은 422 (`usb`는 p6에서 추가, `csv`는 upload 경로로만 들어온다)
@@ -34,7 +29,7 @@
 - 목록: `limit`이 200을 넘거나 `offset`이 음수면 422. 없는 `antenna_id`로 거르면 404가 아니라 빈 배열
 - 숫자 필드는 엄격하게 받는다. JSON `true`나 `"1"`을 `antenna_id`, `target_mhz`로 받지 않는다(422). SQLite 정수 범위를 넘는 id는 없는 id로 본다(404, 500이 아님)
 
-- 이름 수정과 삭제는 없는 id면 404이고 아무것도 바꾸지 않는다. 시연 모드에서는 403(`overview`와 `criteria`는 읽기라서 허용). 삭제는 되돌릴 수 없으므로 화면이 먼저 묻는다. 관리 로직은 `src/manage.py`에 둔다
+(이름 수정, 삭제, 관리용 요약, 판정 기준 API는 p4b에서 만든다.)
 
 응답에는 `NaN`, `Infinity`가 나가지 않는다. 숫자 필드는 `null`로 바꾸고, 카드 문자열에도 `inf`, `nan`이 없어야 한다(p2의 status 규칙). 테스트: 공진점의 반사계수가 정확히 1(`S11_real = 1, S11_imag = 0`)인 CSV를 업로드하면 200이고 status에 공진점 R/X 줄이 없다.
 
