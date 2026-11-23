@@ -38,11 +38,23 @@ def test_every_guide_belongs_to_exactly_one_topic() -> None:
 def test_the_prompt_lists_the_guides_for_the_antenna_kind(kind: AntennaKind) -> None:
     prompt = build_route_prompt("선이 길면?", kind)
 
-    assert prompt.startswith("아래 설명 목록에서 학생 질문과 가장 관련 있는 설명 번호 하나만")
+    assert prompt.startswith("아래 설명 목록은 안테나 S11 측정에서 나타나는 증상과 그 원인에 대한")
     assert "\n\n설명 목록:\n1. " + guide_for("positive_s11", kind) + "\n" in prompt
     for number, key in enumerate(GUIDE_KEYS, start=1):
         assert f"\n{number}. {guide_for(key, kind)}\n" in prompt
     assert prompt.endswith("\n\n학생 질문: 선이 길면?\n번호:")
+
+
+def test_the_prompt_says_what_the_list_cannot_answer() -> None:
+    """Every guide is "this symptom, this cause". Without this the model links "what is
+    resonance?" to a guide that merely shares a word (measured: 4B linked 5 of 12, 9B 3 of 12)."""
+    head = build_route_prompt("공진이 뭐야?", MONOPOLE).split("\n\n")[0]
+
+    for word in ("증상", "원인", "용어의 뜻", "개념", "계산 방법", "안테나 종류 비교"):
+        assert word in head, word
+    assert "관련 있는 설명이 없으면 0" in head
+    assert head.endswith("숫자 하나만 답하세요.")
+    assert "\n" not in head
 
 
 @pytest.mark.parametrize(
