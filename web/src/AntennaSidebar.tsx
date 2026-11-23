@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { listMeasurements } from './api.ts'
 import { AntennaForm } from './AntennaForm.tsx'
-import { EmptyNotice, ErrorNotice, LoadingNotice, StageChip } from './Badges.tsx'
+import { EmptyNotice, ErrorNotice, LoadingNotice, SourceBadge, StageChip } from './Badges.tsx'
 import { antennaText } from './labels.ts'
 import { antennaSummary, countText } from './summary.ts'
 import type { Antenna } from './types.ts'
@@ -43,14 +43,17 @@ export function AntennaSidebar(props: SidebarProps) {
           </li>
         ))}
       </ul>
-      {props.onAdded !== undefined && <AddAntenna onAdded={props.onAdded} />}
+      {props.onAdded !== undefined && <AddAntenna onAdded={props.onAdded} locked={props.locked} />}
       {chosen !== null && <SummaryBox key={`${chosen.id}:${props.refreshKey}`} antenna={chosen} />}
     </aside>
   )
 }
 
-/** The add form stays folded until asked for, and folds again once the antenna is added. */
-function AddAntenna({ onAdded }: { onAdded: (antenna: Antenna) => void }) {
+/**
+ * The add form stays folded until asked for, and folds again once the antenna is added. While a
+ * measurement runs (`locked`) the button and the form are off: adding chooses the new antenna.
+ */
+function AddAntenna({ onAdded, locked }: { onAdded: (antenna: Antenna) => void; locked: boolean }) {
   const [open, setOpen] = useState(false)
   const added = (antenna: Antenna) => {
     setOpen(false)
@@ -58,10 +61,17 @@ function AddAntenna({ onAdded }: { onAdded: (antenna: Antenna) => void }) {
   }
   return (
     <>
-      <button type="button" className="button-dashed" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        className="button-dashed"
+        aria-expanded={open}
+        disabled={locked}
+        title={locked ? '측정이 끝나면 추가할 수 있습니다' : undefined}
+        onClick={() => setOpen(!open)}
+      >
         {open ? '추가 닫기' : '+ 안테나 추가'}
       </button>
-      {open && <AntennaForm onAdded={added} />}
+      {open && <AntennaForm onAdded={added} disabled={locked} />}
     </>
   )
 }
@@ -78,6 +88,10 @@ function SummaryBox({ antenna }: { antenna: Antenna }) {
       <div>
         <dt>측정 횟수</dt>
         <dd>{countText(summary.count)}</dd>
+      </div>
+      <div>
+        <dt>최근 측정</dt>
+        <dd>{summary.latestSource === null ? '—' : <SourceBadge source={summary.latestSource} />}</dd>
       </div>
       <div>
         <dt>최근 공진</dt>

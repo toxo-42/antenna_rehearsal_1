@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { deleteAntenna, describeError, getOverview, renameAntenna } from './api.ts'
 import type { ErrorInfo } from './api.ts'
-import { EmptyNotice, ErrorNotice, LoadingNotice, StageChip } from './Badges.tsx'
+import { EmptyNotice, ErrorNotice, LoadingNotice, SourceBadge, StageChip } from './Badges.tsx'
 import { antennaText, timeText } from './labels.ts'
-import { antennaDeleteQuestion } from './manage.ts'
+import { antennaDeleteQuestion, lastSource } from './manage.ts'
 import { ManageMeasurements } from './ManageMeasurements.tsx'
 import type { AntennaOverview } from './types.ts'
 import type { useAntennas } from './useAppState.ts'
@@ -51,12 +51,17 @@ function AntennaTable({ antennas, act }: { antennas: ManageProps['antennas']; ac
   if (rows.status === 'loading') return <LoadingNotice />
   if (rows.status === 'error') return <ErrorNotice error={rows.error} onRetry={reload} />
   if (rows.data.length === 0) return <EmptyNotice>등록된 안테나가 없습니다. 왼쪽에서 먼저 추가해 주세요.</EmptyNotice>
-  const rename = (id: number, name: string) => act(async () => antennas.replace(await renameAntenna(id, name)))
+  // After either change the sidebar list is loaded again from the server.
+  const rename = (id: number, name: string) =>
+    act(async () => {
+      await renameAntenna(id, name)
+      await antennas.refresh()
+    })
   const remove = (row: AntennaOverview) => {
     if (!window.confirm(antennaDeleteQuestion(row.name, row.measurement_count))) return
     void act(async () => {
       await deleteAntenna(row.id)
-      antennas.remove(row.id)
+      await antennas.refresh()
     })
   }
   return (
@@ -90,6 +95,7 @@ interface RowProps {
 function AntennaRow({ row, onRename, onDelete }: RowProps) {
   const [name, setName] = useState<string | null>(null) // null: not being edited
   const save = () => name !== null && onRename(row.id, name)
+  const source = lastSource(row)
   return (
     <tr>
       <td>
@@ -97,7 +103,10 @@ function AntennaRow({ row, onRename, onDelete }: RowProps) {
         <small>{antennaText(row)}</small>
       </td>
       <td>{row.measurement_count}건</td>
-      <td>{row.last_measured_at === null ? '—' : timeText(row.last_measured_at)}</td>
+      <td>
+        {row.last_measured_at === null ? '—' : timeText(row.last_measured_at)}{' '}
+        {source !== null && <SourceBadge source={source} />}
+      </td>
       <td>{row.last_stage === null ? '—' : <StageChip stage={row.last_stage} />}</td>
       <td className="row-actions">
         {name === null ? (

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { deleteAntenna, deleteMeasurement, getOverview, renameAntenna } from './api.ts'
-import { antennaDeleteQuestion, chosenAntennaId, measurementDeleteQuestion } from './manage.ts'
+import { antennaDeleteQuestion, chosenAntennaId, lastSource, measurementDeleteQuestion, shownAntennas } from './manage.ts'
 
 type Sent = { path: string; init: RequestInit | undefined }
 
@@ -60,4 +60,20 @@ test('a chosen antenna that was deleted falls back to the first one left', () =>
   assert.equal(chosenAntennaId(antennas, 9), 2)
   assert.equal(chosenAntennaId(antennas, null), 2)
   assert.equal(chosenAntennaId([], 9), null)
+})
+
+test('the overview row gives the source of its latest measurement; a missing field is none', () => {
+  assert.equal(lastSource({ last_source: 'synthetic' }), 'synthetic')
+  assert.equal(lastSource({ last_source: 'usb' }), 'usb')
+  assert.equal(lastSource({ last_source: null }), null)
+  assert.equal(lastSource({}), null)
+})
+
+test('the list loaded after a change replaces the first one, also when an id is used again', () => {
+  const first = [{ id: 1, name: '모노폴 A', kind: 'monopole', target_mhz: 433 } as const]
+  // Antenna 1 was deleted and the server gave its id to the antenna added next.
+  const fresh = [{ id: 1, name: '패치 B', kind: 'patch', target_mhz: 2450 } as const]
+  assert.deepEqual(shownAntennas(fresh, first), fresh)
+  assert.deepEqual(shownAntennas([], first), [])
+  assert.deepEqual(shownAntennas(null, first), first)
 })

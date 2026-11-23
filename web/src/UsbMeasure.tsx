@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { listPorts } from './api.ts'
 import { EmptyNotice, ErrorNotice, LoadingNotice } from './Badges.tsx'
 import type { Antenna } from './types.ts'
-import { USB_CAL_NOTICE, USB_MODE_NOTICE, choosePort, rangeWarning } from './usbRange.ts'
+import { USB_CAL_NOTICE, USB_MODE_NOTICE, choosePort, rangeNotice, rangeWarning } from './usbRange.ts'
 import type { RangeBoxes } from './usbRange.ts'
 import type { MeasureState } from './useAppState.ts'
 import { useLoad } from './useLoad.ts'
@@ -21,6 +21,8 @@ export function UsbMeasure({ antenna, measure }: UsbProps) {
     measure.setUsbRange((boxes) => ({ ...boxes, [name]: value }))
   const chosen = choosePort(port, ports.status === 'ready' ? ports.data : null)
   const warning = rangeWarning(startMhz, stopMhz, antenna?.target_mhz ?? null)
+  const notice = rangeNotice(measure.usbRange)
+  const ready = antenna !== null && chosen !== null && notice === null
   const start = () => antenna !== null && chosen !== null && measure.runUsb(antenna.id, chosen)
   return (
     <section className="field-stack" aria-label="VNA로 측정 (USB)">
@@ -34,9 +36,10 @@ export function UsbMeasure({ antenna, measure }: UsbProps) {
         <NumberField label="종료 (MHz)" value={stopMhz} onChange={setBox('stopMhz')} />
         <NumberField label="점 개수 (11~1001)" value={points} onChange={setBox('points')} />
       </div>
+      {notice !== null && <p className="explain-warning">{notice}</p>}
       {warning !== null && <p className="explain-warning">{warning}</p>}
       <p className="muted">{USB_CAL_NOTICE}</p>
-      <button type="button" disabled={measure.busy || antenna === null || chosen === null} onClick={start}>
+      <button type="button" disabled={measure.busy || !ready} onClick={start}>
         VNA로 측정
       </button>
       <p className="explain-warning" role="note">

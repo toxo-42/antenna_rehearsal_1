@@ -22,7 +22,7 @@ export default function App() {
             antennas={antennas.antennas}
             antennaId={antennas.antennaId}
             onSelect={shell.select}
-            onAdded={shell.canMeasure ? antennas.add : undefined}
+            onAdded={shell.canMeasure ? shell.add : undefined}
             locked={measure.busy}
             refreshKey={shell.summaryKey}
           />
@@ -41,10 +41,13 @@ export default function App() {
 function Screens({ shell }: { shell: Shell }) {
   const { screen, measure, antenna, setTab } = shell
   // The suggested range goes into the USB boxes. With a port known from an earlier USB
-  // measurement the student can measure again right on the card; otherwise the measure tab opens.
+  // measurement the student can measure again right on the card; otherwise the measure tab opens
+  // on the USB method, where the filled boxes are.
   const fillRange = (remeasure: Remeasure) => {
     measure.setUsbRange((boxes) => withRemeasure(boxes, remeasure))
-    if (measure.lastPort === null) setTab('measure')
+    if (measure.lastPort !== null) return
+    measure.setMethod('usb')
+    setTab('measure')
   }
   const again = { measure, onRemeasure: fillRange, onGoMeasure: () => setTab('measure') }
   if (screen.tab === 'measure') return <MeasurePanel antenna={antenna} measure={measure} />

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { lengthNotice, lengthValue } from './lengthInput.ts'
+import { lengthNotice, lengthToSend, lengthValue } from './lengthInput.ts'
 
 test('an empty box means the length was not entered', () => {
   assert.equal(lengthValue(''), null)
@@ -19,4 +19,11 @@ test('text that is not a number is not sent, and the screen only asks for a numb
   assert.equal(lengthValue('12cm'), null)
   assert.equal(lengthValue('Infinity'), null)
   assert.equal(lengthNotice('12cm'), '숫자만 입력해 주세요 (예: 12 또는 11.5).')
+})
+
+test('the length is sent for a monopole only: a patch has no length box, so nothing is sent', () => {
+  assert.equal(lengthToSend('16.4', 'monopole'), 16.4)
+  assert.equal(lengthToSend('', 'monopole'), null)
+  assert.equal(lengthToSend('16.4', 'patch'), null)
+  assert.equal(lengthToSend('16.4', null), null)
 })

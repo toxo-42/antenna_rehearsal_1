@@ -22,6 +22,32 @@ export function rangeText(boxes: RangeBoxes): string {
   return `${boxes.startMhz}~${boxes.stopMhz} MHz · ${boxes.points}점`
 }
 
+export const MIN_POINTS = 11
+export const MAX_POINTS = 1001
+export const RANGE_NOTICE = '측정 범위를 숫자로 입력해 주세요'
+export const POINTS_NOTICE = `점 개수는 ${MIN_POINTS}~${MAX_POINTS} 사이의 정수로 입력해 주세요`
+
+/** True when the boxes hold numbers: start and stop finite, the point count an integer. */
+export function rangeUsable(boxes: RangeBoxes): boolean {
+  return Number.isFinite(boxes.startMhz) && Number.isFinite(boxes.stopMhz) && Number.isInteger(boxes.points)
+}
+
+/**
+ * Why the boxes cannot be sent, or null when they can. An emptied box asks for numbers; a point
+ * count that is a number but not an integer from 11 to 1001 gets its own sentence.
+ */
+export function rangeNotice(boxes: RangeBoxes): string | null {
+  const { startMhz, stopMhz, points } = boxes
+  if (![startMhz, stopMhz, points].every(Number.isFinite)) return RANGE_NOTICE
+  if (!rangeUsable(boxes) || points < MIN_POINTS || points > MAX_POINTS) return POINTS_NOTICE
+  return null
+}
+
+/** "216.55": at most two decimals, no trailing zeros. */
+function mhzText(mhz: number): string {
+  return String(Number(mhz.toFixed(2)))
+}
+
 export const START_FRACTION = 0.5
 export const STOP_FRACTION = 1.5
 
@@ -48,10 +74,10 @@ export function choosePort(chosen: string | null, ports: string[] | null): strin
 export function rangeWarning(startMhz: number, stopMhz: number, targetMhz: number | null): string | null {
   if (targetMhz === null || !Number.isFinite(startMhz) || !Number.isFinite(stopMhz)) return null
   if (stopMhz >= targetMhz * STOP_FRACTION && startMhz <= targetMhz * START_FRACTION) return null
-  const low = targetMhz * START_FRACTION
-  const high = targetMhz * STOP_FRACTION
+  const low = mhzText(targetMhz * START_FRACTION)
+  const high = mhzText(targetMhz * STOP_FRACTION)
   return (
-    `범위가 목표 ${targetMhz} MHz에 비해 좁습니다 (권장: ${low} MHz 이하에서 ${high} MHz 이상). ` +
+    `범위가 목표 ${mhzText(targetMhz)} MHz에 비해 좁습니다 (권장: ${low} MHz 이하에서 ${high} MHz 이상). ` +
     '공진이 범위 끝에 가까우면 깊이가 3 dB 미만으로 계산되어 놓칠 수 있습니다.'
   )
 }

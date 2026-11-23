@@ -25,6 +25,8 @@ export interface AntennaOverview extends Antenna {
   last_measured_at: string | null
   last_stage: Stage | null
   last_resonance_mhz: number | null
+  /** Source of the latest measurement. Missing on a server older than this field. */
+  last_source?: Source | null
 }
 
 /** One row of `GET /api/samples`. A hint only; the verdict uses the chosen antenna. */

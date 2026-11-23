@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ACTIONS, EMPTY_NOTE, PARTS, UNITS, amountNotice, amountValue, changeNoteText } from './changeNote.ts'
+import { ACTIONS, EMPTY_NOTE, PARTS, UNITS, amountNotice, amountValue, changeNoteText, savedNoteText } from './changeNote.ts'
 
 test('the choices are the fixed lists of the spec', () => {
   assert.deepEqual(PARTS, ['없음', '도체', '접지판', '케이블', '교정', '납땜'])
@@ -41,4 +41,9 @@ test('an empty or valid amount needs no notice', () => {
   assert.equal(amountNotice(''), null)
   assert.equal(amountNotice('  '), null)
   assert.equal(amountNotice('5'), null)
+})
+
+test('the preview says what will be stored, and "없음" for an empty note', () => {
+  assert.equal(savedNoteText(''), '저장될 기록: 없음')
+  assert.equal(savedNoteText('도체 줄임 5 mm'), '저장될 기록: 도체 줄임 5 mm')
 })

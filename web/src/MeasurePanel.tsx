@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { EmptyNotice, ErrorNotice } from './Badges.tsx'
+import { savedNoteText } from './changeNote.ts'
 import { ChangeNoteFields } from './ChangeNoteFields.tsx'
 import { antennaText, calModeLabel } from './labels.ts'
 import { LengthField } from './LengthField.tsx'
@@ -19,7 +20,6 @@ type PanelProps = { antenna: Antenna | null; measure: MeasureState }
 
 /** Screen 1: for the antenna chosen in the sidebar, note what changed, then measure. */
 export function MeasurePanel({ antenna, measure }: PanelProps) {
-  const saved = measure.changeNote === '' ? '없음' : measure.changeNote
   return (
     <div className="page">
       <header className="page-head page-head-row">
@@ -30,7 +30,19 @@ export function MeasurePanel({ antenna, measure }: PanelProps) {
           </span>
         )}
       </header>
-      {antenna === null && <EmptyNotice>왼쪽에서 측정할 안테나를 먼저 추가해 주세요.</EmptyNotice>}
+      {antenna === null ? (
+        <EmptyNotice>왼쪽에서 측정할 안테나를 먼저 추가해 주세요.</EmptyNotice>
+      ) : (
+        <MeasureForm antenna={antenna} measure={measure} />
+      )}
+    </div>
+  )
+}
+
+/** The form itself. Not drawn without an antenna, so no USB ports are asked for then. */
+function MeasureForm({ antenna, measure }: { antenna: Antenna; measure: MeasureState }) {
+  return (
+    <>
       {measure.error !== null && <ErrorNotice error={measure.error} />}
       {measure.busy && (
         <p className="notice" role="status">
@@ -38,7 +50,7 @@ export function MeasurePanel({ antenna, measure }: PanelProps) {
         </p>
       )}
       <section className="card form-rows">
-        {antenna?.kind === 'monopole' && (
+        {antenna.kind === 'monopole' && (
           <FormRow title="도체 길이" hint="선택. 급전점에서 도체 끝까지 잰 길이입니다. 비워 두면 목표 주파수만으로 판정합니다.">
             <LengthField measure={measure} />
           </FormRow>
@@ -46,7 +58,7 @@ export function MeasurePanel({ antenna, measure }: PanelProps) {
         <FormRow title="Calibration" hint="VNA 교정">
           <CalModeOptions measure={measure} />
         </FormRow>
-        <FormRow title="지난 측정 뒤 바꾼 것" hint={`저장될 기록: ${saved}`}>
+        <FormRow title="지난 측정 뒤 바꾼 것" hint={savedNoteText(measure.changeNote)}>
           <ChangeNoteFields measure={measure} />
         </FormRow>
         <FormRow title="측정 방법" hint="하나를 골라 측정합니다">
@@ -54,7 +66,7 @@ export function MeasurePanel({ antenna, measure }: PanelProps) {
           <MethodBody antenna={antenna} measure={measure} />
         </FormRow>
       </section>
-    </div>
+    </>
   )
 }
 

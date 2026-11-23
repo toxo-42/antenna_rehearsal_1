@@ -1,11 +1,18 @@
 // The conductor length box on the measure screen. Optional: empty means "not entered", and the
 // verdict then works from the target frequency alone. The server checks the range (0 < cm <= 1000).
 
+import type { Kind } from './types.ts'
+
 /** The number to send, or null when the box is empty or does not hold a number. */
 export function lengthValue(text: string): number | null {
   if (text.trim() === '') return null
   const value = Number(text)
   return Number.isFinite(value) ? value : null
+}
+
+/** The length to send with a measurement: a monopole only. A patch has no length box. */
+export function lengthToSend(text: string, kind: Kind | null): number | null {
+  return kind === 'monopole' ? lengthValue(text) : null
 }
 
 /** Shown under the box when its text cannot be sent, so a typo is never dropped silently. */

@@ -39,3 +39,8 @@ export function changeNoteText(choice: NoteChoice): string {
   if (amount !== null) words.push(amount, choice.unit)
   return words.join(' ')
 }
+
+/** "저장될 기록: 도체 줄임 5 mm": the preview next to the note boxes; "없음" for an empty note. */
+export function savedNoteText(changeNote: string): string {
+  return `저장될 기록: ${changeNote === '' ? NO_CHANGE : changeNote}`
+}
