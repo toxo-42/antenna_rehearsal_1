@@ -9,10 +9,10 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
 from starlette.exceptions import HTTPException
 
-from src import assist, compare, saa2, service
+from src import assist, compare, criteria, manage, saa2, service
 from src.length import check_length, parse_length
 
 router = APIRouter(prefix="/api")
@@ -34,6 +34,13 @@ class AntennaBody(BaseModel):
     name: str
     kind: str
     target_mhz: StrictFloat  # takes 433 and 433.0, refuses true and "433"
+
+
+class RenameBody(BaseModel):
+    """Only the name can change: any other field is refused, not ignored."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: str
 
 
 class MeasurementBody(BaseModel):
@@ -120,6 +127,32 @@ def list_antennas(request: Request) -> list[dict[str, Any]]:
 def create_antenna(request: Request, body: AntennaBody) -> dict[str, Any]:
     data = service.AntennaInput(name=body.name, kind=body.kind, target_mhz=body.target_mhz)
     return service.create_antenna(_db(request), data)
+
+
+@router.get("/antennas/overview")
+def antenna_overview(request: Request) -> list[dict[str, Any]]:
+    return manage.overview(_db(request))
+
+
+@router.patch("/antennas/{antenna_id}", dependencies=WRITABLE)
+def rename_antenna(request: Request, antenna_id: int, body: RenameBody) -> dict[str, Any]:
+    return manage.rename_antenna(_db(request), antenna_id, body.name)
+
+
+@router.delete("/antennas/{antenna_id}", dependencies=WRITABLE)
+def delete_antenna(request: Request, antenna_id: int) -> dict[str, Any]:
+    return manage.delete_antenna(_db(request), antenna_id)
+
+
+@router.delete("/measurements/{measurement_id}", dependencies=WRITABLE)
+def delete_measurement(request: Request, measurement_id: int) -> dict[str, Any]:
+    manage.delete_measurement(_db(request), measurement_id)
+    return {"deleted": measurement_id}
+
+
+@router.get("/criteria")
+def stage_criteria(kind: str) -> list[dict[str, str]]:
+    return criteria.criteria_for(kind)
 
 
 @router.get("/samples")

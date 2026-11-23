@@ -150,6 +150,37 @@ def list_measurements(conn: sqlite3.Connection, query: MeasurementQuery) -> list
     return [dict(row) for row in rows]
 
 
+def count_for_antenna(conn: sqlite3.Connection, antenna_id: int) -> int:
+    sql = "SELECT COUNT(*) FROM measurements WHERE antenna_id = ?"
+    return conn.execute(sql, (antenna_id,)).fetchone()[0]
+
+
+def rename_antenna(conn: sqlite3.Connection, antenna_id: int, name: str) -> bool:
+    """False when there is no such antenna."""
+    if not fits_sqlite(antenna_id):
+        return False
+    done = conn.execute("UPDATE antennas SET name = ? WHERE id = ?", (name, antenna_id))
+    return done.rowcount == 1
+
+
+def delete_measurement(conn: sqlite3.Connection, measurement_id: int) -> bool:
+    """False when there is no such measurement."""
+    if not fits_sqlite(measurement_id):
+        return False
+    done = conn.execute("DELETE FROM measurements WHERE id = ?", (measurement_id,))
+    return done.rowcount == 1
+
+
+def delete_antenna(conn: sqlite3.Connection, antenna_id: int) -> int | None:
+    """Delete the antenna with its measurements (same transaction as the caller's connection).
+    Returns how many measurements went with it, or None when there is no such antenna."""
+    if get_antenna(conn, antenna_id) is None:
+        return None
+    gone = conn.execute("DELETE FROM measurements WHERE antenna_id = ?", (antenna_id,))
+    conn.execute("DELETE FROM antennas WHERE id = ?", (antenna_id,))
+    return gone.rowcount
+
+
 def count_measurements(db_path: Path) -> int:
     """0 when the file has no measurements table (e.g. an empty file). Creates nothing."""
     with connect(db_path) as conn:
